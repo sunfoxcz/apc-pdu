@@ -10,7 +10,8 @@ use Sunfox\ApcPdu\PduOutletMetric;
 final class ApcAp8xxxOidMap
 {
     private const OID_DEVICE = '.1.3.6.1.4.1.318.1.1.26.4.3.1';
-    private const OID_OUTLET = '.1.3.6.1.4.1.318.1.1.26.9.4.3.1';
+    private const OID_OUTLET_METERED = '.1.3.6.1.4.1.318.1.1.26.9.4.3.1';
+    private const OID_OUTLET_SWITCHED = '.1.3.6.1.4.1.318.1.1.26.9.2.3.1';
 
     private const DEVICE_OID_SUFFIX = [
         'module_index' => 1,
@@ -97,7 +98,12 @@ final class ApcAp8xxxOidMap
     {
         $suffix = self::OUTLET_OID_SUFFIX[$metric->value()];
 
-        return self::OID_OUTLET . ".{$suffix}.{$snmpIndex}";
+        // State is in switched outlet status table, not metered
+        $base = $metric->value() === 'state'
+            ? self::OID_OUTLET_SWITCHED
+            : self::OID_OUTLET_METERED;
+
+        return $base . ".{$suffix}.{$snmpIndex}";
     }
 
     public function outletToSnmpIndex(int $pduIndex, int $outletNumber, int $outletsPerPdu): int

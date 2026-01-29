@@ -73,7 +73,7 @@ Base: `.1.3.6.1.4.1.318.1.1.26.9.4.3.1.{metric}.{snmp_index}`
 | .2 | rPDU2OutletMeteredStatusModule | INTEGER | - | PDU module index |
 | .3 | rPDU2OutletMeteredStatusName | STRING | - | Outlet name |
 | .4 | rPDU2OutletMeteredStatusNumber | INTEGER | - | Outlet number on PDU |
-| .5 | rPDU2OutletMeteredStatusState | INTEGER | - | Power state (1=off, 2=on) |
+| .5 | rPDU2OutletMeteredStatusState | INTEGER | - | **Always returns 2 (on) - use Switched Status for actual state** |
 | .6 | rPDU2OutletMeteredStatusCurrent | tenths A | ÷10 → A | Current draw |
 | .7 | rPDU2OutletMeteredStatusPower | W | direct | Power consumption |
 | .8 | rPDU2OutletMeteredStatusPeakPower | W | direct | Peak power |
@@ -82,6 +82,23 @@ Base: `.1.3.6.1.4.1.318.1.1.26.9.4.3.1.{metric}.{snmp_index}`
 | .11 | rPDU2OutletMeteredStatusEnergy | tenths kWh | ÷10 → kWh | Energy consumption |
 | .12 | rPDU2OutletMeteredStatusOutletType | STRING | - | Outlet type (e.g., "IEC C13") |
 | .13 | rPDU2OutletMeteredStatusExternalLink | STRING | - | External URL link |
+
+> **Note:** The `rPDU2OutletMeteredStatusState` (suffix .5) always returns 2 (on) regardless of actual
+> outlet switch state. To get the actual on/off state, use the Switched Status table below.
+
+## Outlet Status OIDs (Switched)
+
+Base: `.1.3.6.1.4.1.318.1.1.26.9.2.3.1.{metric}.{snmp_index}`
+
+| Suffix | Name | Type | Description |
+|--------|------|------|-------------|
+| .1 | rPDU2OutletSwitchedStatusIndex | INTEGER | SNMP index |
+| .2 | rPDU2OutletSwitchedStatusModule | INTEGER | PDU module index |
+| .3 | rPDU2OutletSwitchedStatusName | STRING | Outlet name |
+| .4 | rPDU2OutletSwitchedStatusNumber | INTEGER | Outlet number on PDU |
+| .5 | rPDU2OutletSwitchedStatusState | INTEGER | **Actual power state (1=off, 2=on)** |
+| .6 | rPDU2OutletSwitchedStatusCommandPending | INTEGER | Command pending status |
+| .7 | rPDU2OutletSwitchedStatusExternalLink | STRING | External URL link |
 
 ## Outlet Configuration OIDs (Metered)
 

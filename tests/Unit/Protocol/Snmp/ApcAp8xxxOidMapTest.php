@@ -158,8 +158,9 @@ class ApcAp8xxxOidMapTest extends TestCase
 
     public function testOutletOidState(): void
     {
+        // State comes from switched outlet status table, not metered
         $oid = $this->oidMap->outletOid(OutletMetric::State, 1);
-        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.9.4.3.1.5.1', $oid);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.9.2.3.1.5.1', $oid);
     }
 
     public function testOutletOidCurrent(): void
