@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Sunfox\ApcPdu\Tests\Integration;
 
 use Sunfox\ApcPdu\ApcPdu;
+use Sunfox\ApcPdu\DeviceMetric;
 use Sunfox\ApcPdu\OutletMetric;
-use Sunfox\ApcPdu\PDU1;
 use Sunfox\ApcPdu\SnmpException;
 use PHPUnit\Framework\TestCase;
 
@@ -46,7 +46,7 @@ class ApcPduIntegrationTest extends TestCase
 
     public function testGetDevicePower(): void
     {
-        $power = $this->pdu->getDeviceStatus(PDU1::Power);
+        $power = $this->pdu->getDevice(DeviceMetric::Power);
 
         $this->assertIsFloat($power);
         $this->assertGreaterThanOrEqual(0, $power);
@@ -54,7 +54,7 @@ class ApcPduIntegrationTest extends TestCase
 
     public function testGetDevicePeakPower(): void
     {
-        $peakPower = $this->pdu->getDeviceStatus(PDU1::PeakPower);
+        $peakPower = $this->pdu->getDevice(DeviceMetric::PeakPower);
 
         $this->assertIsFloat($peakPower);
         $this->assertGreaterThanOrEqual(0, $peakPower);
@@ -62,7 +62,7 @@ class ApcPduIntegrationTest extends TestCase
 
     public function testGetDeviceEnergy(): void
     {
-        $energy = $this->pdu->getDeviceStatus(PDU1::Energy);
+        $energy = $this->pdu->getDevice(DeviceMetric::Energy);
 
         $this->assertIsFloat($energy);
         $this->assertGreaterThanOrEqual(0, $energy);
@@ -149,8 +149,8 @@ class ApcPduIntegrationTest extends TestCase
 
     public function testPowerValuesAreReasonable(): void
     {
-        $power = $this->pdu->getDeviceStatus(PDU1::Power);
-        $peakPower = $this->pdu->getDeviceStatus(PDU1::PeakPower);
+        $power = $this->pdu->getDevice(DeviceMetric::Power);
+        $peakPower = $this->pdu->getDevice(DeviceMetric::PeakPower);
 
         // Power should be less than or equal to peak power
         $this->assertLessThanOrEqual(
@@ -161,5 +161,14 @@ class ApcPduIntegrationTest extends TestCase
 
         // Power should be within reasonable range for a PDU (0 - 20000W)
         $this->assertLessThan(20000, $power, 'Power seems unreasonably high');
+    }
+
+    public function testGetDeviceWithExplicitPduIndex(): void
+    {
+        // Test that explicit PDU index 1 works
+        $power = $this->pdu->getDevice(DeviceMetric::Power, 1);
+
+        $this->assertIsFloat($power);
+        $this->assertGreaterThanOrEqual(0, $power);
     }
 }

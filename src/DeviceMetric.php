@@ -5,18 +5,13 @@ declare(strict_types=1);
 namespace Sunfox\ApcPdu;
 
 /**
- * Device metrics for PDU 1 (Host)
+ * Device-level metrics for APC PDU
  */
-enum PDU1: int implements PduDeviceMetric
+enum DeviceMetric: int
 {
     case Power = 5;
     case PeakPower = 6;
     case Energy = 9;
-
-    public function deviceIndex(): int
-    {
-        return 1;
-    }
 
     public function oidSuffix(): int
     {
@@ -34,8 +29,8 @@ enum PDU1: int implements PduDeviceMetric
     public function divisor(): float
     {
         return match ($this) {
-            self::Power, self::PeakPower => 0.1,  // hundredths of kW → W (×10 = ÷0.1)
-            self::Energy => 10,                    // tenths of kWh → kWh
+            self::Power, self::PeakPower => 0.1,  // hundredths of kW -> W (×10 = ÷0.1)
+            self::Energy => 10,                    // tenths of kWh -> kWh
         };
     }
 }

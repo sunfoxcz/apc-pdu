@@ -19,7 +19,7 @@ composer require sunfox/apc-pdu
 
 ```php
 use Sunfox\ApcPdu\ApcPdu;
-use Sunfox\ApcPdu\PDU1;
+use Sunfox\ApcPdu\DeviceMetric;
 use Sunfox\ApcPdu\OutletMetric;
 
 $pdu = ApcPdu::v1('192.168.1.100', 'public');
@@ -39,13 +39,13 @@ $pdu = ApcPdu::v3(
 ### Device-Level Metrics
 
 ```php
-// Get individual metrics
-$power = $pdu->getDeviceStatus(PDU1::Power);      // Returns watts
-$peak = $pdu->getDeviceStatus(PDU1::PeakPower);   // Returns watts
-$energy = $pdu->getDeviceStatus(PDU1::Energy);    // Returns kWh
+// Get individual metrics (PDU 1 is default)
+$power = $pdu->getDevice(DeviceMetric::Power);       // Returns watts
+$peak = $pdu->getDevice(DeviceMetric::PeakPower);    // Returns watts
+$energy = $pdu->getDevice(DeviceMetric::Energy);     // Returns kWh
 
 // Get all device metrics at once
-$device = $pdu->getDeviceAll(1);
+$device = $pdu->getDeviceAll();
 // Returns: ['power_w' => 1234.5, 'peak_power_w' => 1500.0, 'energy_kwh' => 567.8]
 ```
 
@@ -75,16 +75,24 @@ $status = $pdu->getFullStatus();
 
 ### Network Port Sharing (NPS)
 
-When multiple PDUs are daisy-chained:
-- PDU 1 (Host): Use `PDU1::*` enums or `pduIndex = 1`
-- PDU 2 (Guest): Use `PDU2::*` enums or `pduIndex = 2`
+When multiple PDUs are daisy-chained (up to 4 PDUs supported), specify the PDU index as the second parameter:
 
 ```php
-use Sunfox\ApcPdu\PDU1;
-use Sunfox\ApcPdu\PDU2;
+use Sunfox\ApcPdu\DeviceMetric;
 
-$hostPower = $pdu->getDeviceStatus(PDU1::Power);
-$guestPower = $pdu->getDeviceStatus(PDU2::Power);
+// PDU 1 (Host) - default when no index specified
+$hostPower = $pdu->getDevice(DeviceMetric::Power);
+$hostPower = $pdu->getDevice(DeviceMetric::Power, 1);  // Explicit
+
+// PDU 2 (Guest)
+$guest1Power = $pdu->getDevice(DeviceMetric::Power, 2);
+
+// PDU 3 and 4 (additional guests)
+$guest2Power = $pdu->getDevice(DeviceMetric::Power, 3);
+$guest3Power = $pdu->getDevice(DeviceMetric::Power, 4);
+
+// Get all metrics for specific PDU
+$device = $pdu->getDeviceAll(2);  // All metrics for PDU 2
 ```
 
 ### Testing Connection
@@ -97,7 +105,7 @@ if ($pdu->testConnection()) {
 
 ## Available Metrics
 
-### Device Metrics (PDU1, PDU2)
+### Device Metrics (DeviceMetric)
 
 | Metric | Unit | Description |
 |--------|------|-------------|

@@ -3,17 +3,15 @@
 ## Overview
 
 PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3).
-Supports Network Port Sharing (multiple PDUs on one IP).
+Supports Network Port Sharing (up to 4 daisy-chained PDUs on one IP).
 
 ## Project Structure
 
 ```
 ├── src/
 │   ├── ApcPdu.php            # Main class with v1/v3 and NPS support
-│   ├── PduDeviceMetric.php   # Interface for device metrics
+│   ├── DeviceMetric.php      # Enum for device-level metrics
 │   ├── PduOutletMetric.php   # Interface for outlet metrics
-│   ├── PDU1.php              # Enum for PDU1 (host) metrics
-│   ├── PDU2.php              # Enum for PDU2 (guest) metrics
 │   ├── OutletMetric.php      # Enum for outlet metrics
 │   └── SnmpException.php     # Custom exception class
 ├── tests/
@@ -64,7 +62,9 @@ Base: `.1.3.6.1.4.1.318.1.1.26.9.4.3.1.{metric}.{snmp_index}`
 ### Network Port Sharing
 
 - Host PDU: device index = 1, outlet SNMP index = 1-24
-- Guest PDU: device index = 2, outlet SNMP index = 25-48
+- Guest PDU 1: device index = 2, outlet SNMP index = 25-48
+- Guest PDU 2: device index = 3, outlet SNMP index = 49-72
+- Guest PDU 3: device index = 4, outlet SNMP index = 73-96
 - Formula: `snmp_index = ((pdu_index - 1) × 24) + outlet_number`
 
 ## Usage
@@ -72,8 +72,7 @@ Base: `.1.3.6.1.4.1.318.1.1.26.9.4.3.1.{metric}.{snmp_index}`
 ```php
 <?php
 use Sunfox\ApcPdu\ApcPdu;
-use Sunfox\ApcPdu\PDU1;
-use Sunfox\ApcPdu\PDU2;
+use Sunfox\ApcPdu\DeviceMetric;
 use Sunfox\ApcPdu\OutletMetric;
 
 // SNMPv1
@@ -82,19 +81,24 @@ $pdu = ApcPdu::v1('192.168.1.100', 'public');
 // SNMPv3
 $pdu = ApcPdu::v3('192.168.1.100', 'monitor', 'AuthPass', 'PrivPass');
 
-// Device metrics
-$power = $pdu->getDeviceStatus(PDU1::Power);      // W
-$energy = $pdu->getDeviceStatus(PDU2::Energy);    // kWh
+// Device metrics (PDU 1 is default)
+$power = $pdu->getDevice(DeviceMetric::Power);       // W
+$energy = $pdu->getDevice(DeviceMetric::Energy);     // kWh
+
+// Device metrics for specific PDU (1-4)
+$power = $pdu->getDevice(DeviceMetric::Power, 2);    // PDU 2
+$power = $pdu->getDevice(DeviceMetric::Power, 3);    // PDU 3
+$power = $pdu->getDevice(DeviceMetric::Power, 4);    // PDU 4
 
 // Outlet metrics
 $outletPower = $pdu->getOutletStatus(1, 5, OutletMetric::Power);
 $outletName = $pdu->getOutletStatus(1, 5, OutletMetric::Name);
 
 // Bulk operations
-$device = $pdu->getDeviceAll(1);        // all device metrics
+$device = $pdu->getDeviceAll(1);        // all device metrics for PDU 1
 $outlet = $pdu->getOutletAll(1, 5);     // all outlet metrics
-$outlets = $pdu->getAllOutlets(1);      // all outlets of PDU1
-$full = $pdu->getFullStatus();          // complete dump
+$outlets = $pdu->getAllOutlets(1);      // all outlets of PDU 1
+$full = $pdu->getFullStatus();          // complete dump (all available PDUs)
 ```
 
 ## Development

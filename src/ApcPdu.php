@@ -7,7 +7,7 @@ namespace Sunfox\ApcPdu;
 /**
  * APC PDU SNMP Reader with Network Port Sharing support
  *
- * Supports SNMPv1 and SNMPv3, reading from host and guest PDU.
+ * Supports SNMPv1 and SNMPv3, reading from up to 4 daisy-chained PDUs.
  * Tested on AP8653.
  */
 class ApcPdu
@@ -95,12 +95,13 @@ class ApcPdu
     /**
      * Get a single device-level metric.
      *
-     * @param PduDeviceMetric $metric PDU1::Power, PDU2::Energy, etc.
+     * @param DeviceMetric $metric DeviceMetric::Power, DeviceMetric::Energy, etc.
+     * @param int $pduIndex PDU index (1-4, default 1)
      * @return float Value in target units (W, kWh)
      */
-    public function getDeviceStatus(PduDeviceMetric $metric): float
+    public function getDevice(DeviceMetric $metric, int $pduIndex = 1): float
     {
-        $oid = self::OID_DEVICE . ".{$metric->oidSuffix()}.{$metric->deviceIndex()}";
+        $oid = self::OID_DEVICE . ".{$metric->oidSuffix()}.{$pduIndex}";
         $raw = $this->snmpGetValue($oid);
         return $raw / $metric->divisor();
     }
@@ -108,24 +109,22 @@ class ApcPdu
     /**
      * Get all device-level metrics for one PDU.
      *
-     * @param int $pduIndex 1 = host, 2 = guest
+     * @param int $pduIndex PDU index (1-4, default 1)
      * @return array{power_w: float, peak_power_w: float, energy_kwh: float}
      */
     public function getDeviceAll(int $pduIndex = 1): array
     {
-        $enum = $pduIndex === 1 ? PDU1::class : PDU2::class;
-
         return [
-            'power_w' => $this->getDeviceStatus($enum::Power),
-            'peak_power_w' => $this->getDeviceStatus($enum::PeakPower),
-            'energy_kwh' => $this->getDeviceStatus($enum::Energy),
+            'power_w' => $this->getDevice(DeviceMetric::Power, $pduIndex),
+            'peak_power_w' => $this->getDevice(DeviceMetric::PeakPower, $pduIndex),
+            'energy_kwh' => $this->getDevice(DeviceMetric::Energy, $pduIndex),
         ];
     }
 
     /**
      * Get a single outlet-level metric.
      *
-     * @param int $pduIndex 1 = host, 2 = guest
+     * @param int $pduIndex PDU index (1-4)
      * @param int $outletNumber Outlet number on the given PDU (1-24)
      * @param PduOutletMetric $metric OutletMetric::Power, etc.
      * @return float|string Value in target units
@@ -146,7 +145,7 @@ class ApcPdu
     /**
      * Get all metrics for one outlet.
      *
-     * @param int $pduIndex 1 = host, 2 = guest
+     * @param int $pduIndex PDU index (1-4)
      * @param int $outletNumber Outlet number on the given PDU (1-24)
      * @return array{name: string, current_a: float, power_w: float, peak_power_w: float, energy_kwh: float}
      */
@@ -164,7 +163,7 @@ class ApcPdu
     /**
      * Get all outlets for one PDU.
      *
-     * @param int $pduIndex 1 = host, 2 = guest
+     * @param int $pduIndex PDU index (1-4, default 1)
      * @return array<int, array{name: string, current_a: float, power_w: float, peak_power_w: float, energy_kwh: float}>
      */
     public function getAllOutlets(int $pduIndex = 1): array
@@ -183,7 +182,9 @@ class ApcPdu
     }
 
     /**
-     * Get complete status of both PDUs.
+     * Get complete status of all available PDUs.
+     *
+     * Iterates through PDU indices 1-4 and stops when SNMP returns an error.
      *
      * @return array<string, array{device: array, outlets: array}>
      */
@@ -191,15 +192,15 @@ class ApcPdu
     {
         $result = [];
 
-        foreach ([1, 2] as $pduIndex) {
+        for ($pduIndex = 1; $pduIndex <= 4; $pduIndex++) {
             try {
                 $result["pdu{$pduIndex}"] = [
                     'device' => $this->getDeviceAll($pduIndex),
                     'outlets' => $this->getAllOutlets($pduIndex),
                 ];
             } catch (SnmpException $e) {
-                // PDU does not exist
-                continue;
+                // PDU does not exist, stop iterating
+                break;
             }
         }
 
@@ -208,12 +209,13 @@ class ApcPdu
 
     /**
      * Test connection to PDU.
+     *
+     * @param int $pduIndex PDU index (1-4, default 1)
      */
     public function testConnection(int $pduIndex = 1): bool
     {
         try {
-            $enum = $pduIndex === 1 ? PDU1::class : PDU2::class;
-            $this->getDeviceStatus($enum::Power);
+            $this->getDevice(DeviceMetric::Power, $pduIndex);
             return true;
         } catch (SnmpException $e) {
             return false;
@@ -239,8 +241,8 @@ class ApcPdu
     /**
      * Convert PDU index + outlet number to SNMP index.
      *
-     * PDU 1, outlet 1-24 → SNMP index 1-24
-     * PDU 2, outlet 1-24 → SNMP index 25-48
+     * PDU 1, outlet 1-24 -> SNMP index 1-24
+     * PDU 2, outlet 1-24 -> SNMP index 25-48
      */
     private function outletToSnmpIndex(int $pduIndex, int $outletNumber): int
     {
