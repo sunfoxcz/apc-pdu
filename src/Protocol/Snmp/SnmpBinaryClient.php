@@ -13,7 +13,7 @@ use Sunfox\ApcPdu\SnmpBinaryNotFoundException;
  * This client provides efficient batch operations using a single shell command
  * for multiple OIDs, but requires the net-snmp package to be installed.
  */
-final class SnmpBinaryClient implements SnmpClientInterface
+final class SnmpBinaryClient implements SnmpWritableClientInterface
 {
     public function __construct(
         private string $host,
@@ -192,5 +192,90 @@ final class SnmpBinaryClient implements SnmpClientInterface
         }
 
         return $results;
+    }
+
+    public function setV1(string $oid, string $type, string $value, string $community): void
+    {
+        $timeoutSeconds = (int) ceil($this->timeout / 1000000);
+
+        $cmd = sprintf(
+            'snmpset -v1 -c %s -t %d -r %d %s %s %s %s 2>&1',
+            escapeshellarg($community),
+            $timeoutSeconds,
+            $this->retries,
+            escapeshellarg($this->host),
+            escapeshellarg($oid),
+            escapeshellarg($type),
+            escapeshellarg($value),
+        );
+
+        $this->executeSetCommand($cmd, $oid);
+    }
+
+    public function setV3(
+        string $oid,
+        string $type,
+        string $value,
+        string $username,
+        string $securityLevel,
+        string $authProtocol,
+        string $authPassphrase,
+        string $privProtocol,
+        string $privPassphrase,
+    ): void {
+        $timeoutSeconds = (int) ceil($this->timeout / 1000000);
+
+        $cmd = sprintf(
+            'snmpset -v3 -l %s -u %s -a %s -A %s -x %s -X %s -t %d -r %d %s %s %s %s 2>&1',
+            escapeshellarg($securityLevel),
+            escapeshellarg($username),
+            escapeshellarg($authProtocol),
+            escapeshellarg($authPassphrase),
+            escapeshellarg($privProtocol),
+            escapeshellarg($privPassphrase),
+            $timeoutSeconds,
+            $this->retries,
+            escapeshellarg($this->host),
+            escapeshellarg($oid),
+            escapeshellarg($type),
+            escapeshellarg($value),
+        );
+
+        $this->executeSetCommand($cmd, $oid);
+    }
+
+    /**
+     * Execute SNMP SET command.
+     *
+     * @throws PduException
+     * @throws SnmpBinaryNotFoundException
+     */
+    private function executeSetCommand(string $cmd, string $oid): void
+    {
+        $output = shell_exec($cmd);
+
+        if ($output === null || $output === false) {
+            throw new PduException("SNMP SET failed for OID: {$oid} - command execution failed");
+        }
+
+        $output = trim($output);
+
+        // Check if snmpset binary is not found
+        if (
+            str_contains($output, 'snmpset: not found')
+            || str_contains($output, 'snmpset: command not found')
+            || str_contains($output, 'not found')
+            && str_contains($output, 'snmpset')
+        ) {
+            throw new SnmpBinaryNotFoundException('snmpset');
+        }
+
+        if (str_contains($output, 'Timeout') || str_contains($output, 'No Response')) {
+            throw new PduException("SNMP SET failed for OID: {$oid} - timeout");
+        }
+
+        if (str_contains($output, 'Error') || str_contains($output, 'failed')) {
+            throw new PduException("SNMP SET failed for OID: {$oid} - {$output}");
+        }
     }
 }

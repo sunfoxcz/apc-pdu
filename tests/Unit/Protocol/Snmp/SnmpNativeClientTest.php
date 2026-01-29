@@ -7,6 +7,7 @@ namespace Sunfox\ApcPdu\Tests\Unit\Protocol\Snmp;
 use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpClientInterface;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpNativeClient;
+use Sunfox\ApcPdu\Protocol\Snmp\SnmpWritableClientInterface;
 
 class SnmpNativeClientTest extends TestCase
 {
@@ -15,6 +16,13 @@ class SnmpNativeClientTest extends TestCase
         $client = new SnmpNativeClient('192.168.1.100');
 
         $this->assertInstanceOf(SnmpClientInterface::class, $client);
+    }
+
+    public function testImplementsWritableInterface(): void
+    {
+        $client = new SnmpNativeClient('192.168.1.100');
+
+        $this->assertInstanceOf(SnmpWritableClientInterface::class, $client);
     }
 
     public function testGetHostReturnsHost(): void

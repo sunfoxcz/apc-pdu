@@ -7,9 +7,9 @@ namespace Sunfox\ApcPdu\Protocol\Snmp;
 use Sunfox\ApcPdu\DeviceMetric;
 use Sunfox\ApcPdu\OutletMetric;
 use Sunfox\ApcPdu\PduOutletMetric;
-use Sunfox\ApcPdu\Protocol\ProtocolProviderInterface;
+use Sunfox\ApcPdu\Protocol\WritableProtocolProviderInterface;
 
-final class SnmpV3Provider implements ProtocolProviderInterface
+final class SnmpV3Provider implements WritableProtocolProviderInterface
 {
     private ApcAp8xxxOidMap $oidMap;
     private SnmpResponseParser $parser;
@@ -186,6 +186,127 @@ final class SnmpV3Provider implements ProtocolProviderInterface
     public function getOutletsPerPdu(): int
     {
         return $this->outletsPerPdu;
+    }
+
+    public function setOutletName(int $pduIndex, int $outletNumber, string $name): void
+    {
+        if (!$this->isWritable()) {
+            throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
+        }
+
+        $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
+        $oid = $this->oidMap->outletOid(OutletMetric::Name, $snmpIndex);
+
+        /** @var SnmpWritableClientInterface $client */
+        $client = $this->client;
+        $client->setV3(
+            $oid,
+            's',
+            $name,
+            $this->username,
+            $this->securityLevel,
+            $this->authProtocol,
+            $this->authPassphrase,
+            $this->privProtocol,
+            $this->privPassphrase,
+        );
+    }
+
+    public function setOutletState(
+        int $pduIndex,
+        int $outletNumber,
+        \Sunfox\ApcPdu\PowerState $state,
+    ): void {
+        if (!$this->isWritable()) {
+            throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
+        }
+
+        $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
+        $oid = $this->oidMap->outletStateControlOid($snmpIndex);
+
+        /** @var SnmpWritableClientInterface $client */
+        $client = $this->client;
+        $client->setV3(
+            $oid,
+            'i',
+            (string) $state->value,
+            $this->username,
+            $this->securityLevel,
+            $this->authProtocol,
+            $this->authPassphrase,
+            $this->privProtocol,
+            $this->privPassphrase,
+        );
+    }
+
+    public function setOutletExternalLink(int $pduIndex, int $outletNumber, string $url): void
+    {
+        if (!$this->isWritable()) {
+            throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
+        }
+
+        $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
+        $oid = $this->oidMap->outletOid(OutletMetric::ExternalLink, $snmpIndex);
+
+        /** @var SnmpWritableClientInterface $client */
+        $client = $this->client;
+        $client->setV3(
+            $oid,
+            's',
+            $url,
+            $this->username,
+            $this->securityLevel,
+            $this->authProtocol,
+            $this->authPassphrase,
+            $this->privProtocol,
+            $this->privPassphrase,
+        );
+    }
+
+    public function resetDevicePeakPower(int $pduIndex): void
+    {
+        $this->executeReset($this->oidMap->devicePeakPowerResetOid($pduIndex));
+    }
+
+    public function resetDeviceEnergy(int $pduIndex): void
+    {
+        $this->executeReset($this->oidMap->deviceEnergyResetOid($pduIndex));
+    }
+
+    public function resetOutletsEnergy(int $pduIndex): void
+    {
+        $this->executeReset($this->oidMap->outletsEnergyResetOid($pduIndex));
+    }
+
+    public function resetOutletsPeakPower(int $pduIndex): void
+    {
+        $this->executeReset($this->oidMap->outletsPeakPowerResetOid($pduIndex));
+    }
+
+    public function isWritable(): bool
+    {
+        return $this->client instanceof SnmpWritableClientInterface;
+    }
+
+    private function executeReset(string $oid): void
+    {
+        if (!$this->isWritable()) {
+            throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
+        }
+
+        /** @var SnmpWritableClientInterface $client */
+        $client = $this->client;
+        $client->setV3(
+            $oid,
+            'i',
+            '2',
+            $this->username,
+            $this->securityLevel,
+            $this->authProtocol,
+            $this->authPassphrase,
+            $this->privProtocol,
+            $this->privPassphrase,
+        );
     }
 
     private function determineSecurityLevel(): string

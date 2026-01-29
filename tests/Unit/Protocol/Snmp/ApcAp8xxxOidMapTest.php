@@ -295,4 +295,46 @@ class ApcAp8xxxOidMapTest extends TestCase
     {
         $this->assertSame(1.0, $this->oidMap->getOutletDivisor(OutletMetric::State));
     }
+
+    public function testDevicePeakPowerResetOid(): void
+    {
+        $oid = $this->oidMap->devicePeakPowerResetOid(1);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.1.1.10.1', $oid);
+    }
+
+    public function testDevicePeakPowerResetOidPdu2(): void
+    {
+        $oid = $this->oidMap->devicePeakPowerResetOid(2);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.1.1.10.2', $oid);
+    }
+
+    public function testDeviceEnergyResetOid(): void
+    {
+        $oid = $this->oidMap->deviceEnergyResetOid(1);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.1.1.11.1', $oid);
+    }
+
+    public function testDeviceEnergyResetOidPdu3(): void
+    {
+        $oid = $this->oidMap->deviceEnergyResetOid(3);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.1.1.11.3', $oid);
+    }
+
+    public function testOutletsEnergyResetOid(): void
+    {
+        $oid = $this->oidMap->outletsEnergyResetOid(1);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.1.1.12.1', $oid);
+    }
+
+    public function testOutletsPeakPowerResetOid(): void
+    {
+        $oid = $this->oidMap->outletsPeakPowerResetOid(1);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.1.1.13.1', $oid);
+    }
+
+    public function testOutletsPeakPowerResetOidPdu4(): void
+    {
+        $oid = $this->oidMap->outletsPeakPowerResetOid(4);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.1.1.13.4', $oid);
+    }
 }

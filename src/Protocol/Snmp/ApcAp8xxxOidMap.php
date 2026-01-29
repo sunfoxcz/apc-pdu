@@ -9,9 +9,20 @@ use Sunfox\ApcPdu\PduOutletMetric;
 
 final class ApcAp8xxxOidMap
 {
-    private const OID_DEVICE = '.1.3.6.1.4.1.318.1.1.26.4.3.1';
+    private const OID_DEVICE_STATUS = '.1.3.6.1.4.1.318.1.1.26.4.3.1';
+    private const OID_DEVICE_CONFIG = '.1.3.6.1.4.1.318.1.1.26.4.1.1';
     private const OID_OUTLET_METERED = '.1.3.6.1.4.1.318.1.1.26.9.4.3.1';
     private const OID_OUTLET_SWITCHED = '.1.3.6.1.4.1.318.1.1.26.9.2.3.1';
+    private const OID_OUTLET_CONTROL = '.1.3.6.1.4.1.318.1.1.26.9.2.4.1';
+
+    // Outlet control OID suffix
+    private const OUTLET_CONTROL_COMMAND = 5;
+
+    // Device config OID suffixes for reset operations
+    private const DEVICE_CONFIG_PEAK_POWER_RESET = 10;
+    private const DEVICE_CONFIG_ENERGY_RESET = 11;
+    private const DEVICE_CONFIG_OUTLETS_ENERGY_RESET = 12;
+    private const DEVICE_CONFIG_OUTLETS_PEAK_POWER_RESET = 13;
 
     private const DEVICE_OID_SUFFIX = [
         'module_index' => 1,
@@ -91,7 +102,32 @@ final class ApcAp8xxxOidMap
     {
         $suffix = self::DEVICE_OID_SUFFIX[$metric->value];
 
-        return self::OID_DEVICE . ".{$suffix}.{$pduIndex}";
+        return self::OID_DEVICE_STATUS . ".{$suffix}.{$pduIndex}";
+    }
+
+    public function devicePeakPowerResetOid(int $pduIndex): string
+    {
+        return self::OID_DEVICE_CONFIG . '.' . self::DEVICE_CONFIG_PEAK_POWER_RESET . ".{$pduIndex}";
+    }
+
+    public function deviceEnergyResetOid(int $pduIndex): string
+    {
+        return self::OID_DEVICE_CONFIG . '.' . self::DEVICE_CONFIG_ENERGY_RESET . ".{$pduIndex}";
+    }
+
+    public function outletsEnergyResetOid(int $pduIndex): string
+    {
+        return self::OID_DEVICE_CONFIG . '.' . self::DEVICE_CONFIG_OUTLETS_ENERGY_RESET . ".{$pduIndex}";
+    }
+
+    public function outletsPeakPowerResetOid(int $pduIndex): string
+    {
+        return self::OID_DEVICE_CONFIG . '.' . self::DEVICE_CONFIG_OUTLETS_PEAK_POWER_RESET . ".{$pduIndex}";
+    }
+
+    public function outletStateControlOid(int $snmpIndex): string
+    {
+        return self::OID_OUTLET_CONTROL . '.' . self::OUTLET_CONTROL_COMMAND . ".{$snmpIndex}";
     }
 
     public function outletOid(PduOutletMetric $metric, int $snmpIndex): string

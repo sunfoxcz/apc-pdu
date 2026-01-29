@@ -89,34 +89,23 @@ class ApcPduSshIntegrationTest extends TestCase
         $this->assertLessThanOrEqual(1, $powerFactor);
     }
 
-    public function testGetOutletName(): void
+    public function testGetOutletGetMetric(): void
     {
-        $name = $this->pdu->getOutlet(1, 1, OutletMetric::Name);
+        $outlet = $this->pdu->getOutlet(1);
 
+        $name = $outlet->getMetric(OutletMetric::Name);
         $this->assertIsString($name);
         $this->assertNotEmpty($name);
-    }
 
-    public function testGetOutletPower(): void
-    {
-        $power = $this->pdu->getOutlet(1, 1, OutletMetric::Power);
-
+        $power = $outlet->getMetric(OutletMetric::Power);
         $this->assertIsFloat($power);
         $this->assertGreaterThanOrEqual(0, $power);
-    }
 
-    public function testGetOutletCurrent(): void
-    {
-        $current = $this->pdu->getOutlet(1, 1, OutletMetric::Current);
-
+        $current = $outlet->getMetric(OutletMetric::Current);
         $this->assertIsFloat($current);
         $this->assertGreaterThanOrEqual(0, $current);
-    }
 
-    public function testGetOutletEnergy(): void
-    {
-        $energy = $this->pdu->getOutlet(1, 1, OutletMetric::Energy);
-
+        $energy = $outlet->getMetric(OutletMetric::Energy);
         $this->assertIsFloat($energy);
         $this->assertGreaterThanOrEqual(0, $energy);
     }

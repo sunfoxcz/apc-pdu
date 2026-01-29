@@ -7,6 +7,7 @@ namespace Sunfox\ApcPdu\Tests\Unit\Protocol\Snmp;
 use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpBinaryClient;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpClientInterface;
+use Sunfox\ApcPdu\Protocol\Snmp\SnmpWritableClientInterface;
 use Sunfox\ApcPdu\SnmpBinaryNotFoundException;
 
 class SnmpBinaryClientTest extends TestCase
@@ -16,6 +17,13 @@ class SnmpBinaryClientTest extends TestCase
         $client = new SnmpBinaryClient('192.168.1.100');
 
         $this->assertInstanceOf(SnmpClientInterface::class, $client);
+    }
+
+    public function testImplementsWritableInterface(): void
+    {
+        $client = new SnmpBinaryClient('192.168.1.100');
+
+        $this->assertInstanceOf(SnmpWritableClientInterface::class, $client);
     }
 
     public function testGetHostReturnsHost(): void

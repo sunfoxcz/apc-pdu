@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunfox\ApcPdu\Protocol\Snmp;
 
 use FreeDSx\Snmp\Protocol\ClientProtocolHandler;
+use FreeDSx\Snmp\Oid;
 use FreeDSx\Snmp\SnmpClient;
 use Sunfox\ApcPdu\PduException;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpFreeDsxClient\LenientSecurityModelModuleFactory;
@@ -17,7 +18,7 @@ use Throwable;
  * This client requires the freedsx/snmp package to be installed.
  * Install it with: composer require freedsx/snmp
  */
-final class SnmpFreeDsxClient implements SnmpClientInterface
+final class SnmpFreeDsxClient implements SnmpWritableClientInterface
 {
     /**
      * @var array<string, string>
@@ -235,5 +236,64 @@ final class SnmpFreeDsxClient implements SnmpClientInterface
         );
 
         return new SnmpClient($options);
+    }
+
+    public function setV1(string $oid, string $type, string $value, string $community): void
+    {
+        $client = new SnmpClient([
+            'host' => $this->host,
+            'version' => 1,
+            'community' => $community,
+            'timeout_read' => $this->timeoutSeconds,
+            'retries' => $this->retries,
+        ]);
+
+        try {
+            $client->set(Oid::fromString($oid, $this->convertTypeValue($type, $value)));
+        } catch (PduException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new PduException("SNMP SET failed for OID: {$oid} - {$e->getMessage()}", 0, $e);
+        }
+    }
+
+    public function setV3(
+        string $oid,
+        string $type,
+        string $value,
+        string $username,
+        string $securityLevel,
+        string $authProtocol,
+        string $authPassphrase,
+        string $privProtocol,
+        string $privPassphrase,
+    ): void {
+        $client = $this->createV3Client(
+            $username,
+            $securityLevel,
+            $authProtocol,
+            $authPassphrase,
+            $privProtocol,
+            $privPassphrase,
+        );
+
+        try {
+            $client->set(Oid::fromString($oid, $this->convertTypeValue($type, $value)));
+        } catch (PduException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new PduException("SNMP SET failed for OID: {$oid} - {$e->getMessage()}", 0, $e);
+        }
+    }
+
+    /**
+     * Convert SNMP type and value to appropriate PHP type for FreeDSx.
+     */
+    private function convertTypeValue(string $type, string $value): string|int
+    {
+        return match ($type) {
+            'i' => (int) $value,
+            default => $value,
+        };
     }
 }

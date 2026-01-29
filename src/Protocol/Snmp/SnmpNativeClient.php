@@ -12,7 +12,7 @@ use Sunfox\ApcPdu\PduException;
  * This client is portable and works without external binary dependencies,
  * but batch operations loop over OIDs calling single-get (slower).
  */
-final class SnmpNativeClient implements SnmpClientInterface
+final class SnmpNativeClient implements SnmpWritableClientInterface
 {
     public function __construct(
         private string $host,
@@ -120,5 +120,47 @@ final class SnmpNativeClient implements SnmpClientInterface
     public function getHost(): string
     {
         return $this->host;
+    }
+
+    public function setV1(string $oid, string $type, string $value, string $community): void
+    {
+        $result = @snmpset($this->host, $community, $oid, $type, $value, $this->timeout, $this->retries);
+
+        if ($result === false) {
+            $error = error_get_last();
+            throw new PduException("SNMP SET failed for OID: {$oid}" . ($error ? " - {$error['message']}" : ''));
+        }
+    }
+
+    public function setV3(
+        string $oid,
+        string $type,
+        string $value,
+        string $username,
+        string $securityLevel,
+        string $authProtocol,
+        string $authPassphrase,
+        string $privProtocol,
+        string $privPassphrase,
+    ): void {
+        $result = @snmp3_set(
+            $this->host,
+            $username,
+            $securityLevel,
+            $authProtocol,
+            $authPassphrase,
+            $privProtocol,
+            $privPassphrase,
+            $oid,
+            $type,
+            $value,
+            $this->timeout,
+            $this->retries,
+        );
+
+        if ($result === false) {
+            $error = error_get_last();
+            throw new PduException("SNMP SET failed for OID: {$oid}" . ($error ? " - {$error['message']}" : ''));
+        }
     }
 }

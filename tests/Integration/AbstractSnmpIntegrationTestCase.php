@@ -6,6 +6,7 @@ namespace Sunfox\ApcPdu\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\ApcPdu;
+use Sunfox\ApcPdu\ApcPduOutlet;
 use Sunfox\ApcPdu\DeviceMetric;
 use Sunfox\ApcPdu\Dto\DeviceStatus;
 use Sunfox\ApcPdu\Dto\OutletStatus;
@@ -87,40 +88,54 @@ abstract class AbstractSnmpIntegrationTestCase extends TestCase
         $this->assertGreaterThanOrEqual(0, $device->energyKwh);
     }
 
-    public function testGetOutletName(): void
+    public function testGetOutletGetMetric(): void
     {
-        $name = $this->pdu->getOutlet(1, 1, OutletMetric::Name);
+        $outlet = $this->pdu->getOutlet(1);
 
+        $name = $outlet->getMetric(OutletMetric::Name);
         $this->assertIsString($name);
-    }
 
-    public function testGetOutletPower(): void
-    {
-        $power = $this->pdu->getOutlet(1, 1, OutletMetric::Power);
-
+        $power = $outlet->getMetric(OutletMetric::Power);
         $this->assertIsFloat($power);
         $this->assertGreaterThanOrEqual(0, $power);
-    }
 
-    public function testGetOutletCurrent(): void
-    {
-        $current = $this->pdu->getOutlet(1, 1, OutletMetric::Current);
-
+        $current = $outlet->getMetric(OutletMetric::Current);
         $this->assertIsFloat($current);
         $this->assertGreaterThanOrEqual(0, $current);
     }
 
-    public function testGetOutletStatus(): void
+    public function testGetOutletReturnsApcPduOutlet(): void
     {
-        $outlet = $this->pdu->getOutletStatus(1, 1);
+        $outlet = $this->pdu->getOutlet(1);
 
-        $this->assertInstanceOf(OutletStatus::class, $outlet);
-        $this->assertSame(1, $outlet->index);
-        $this->assertIsString($outlet->name);
-        $this->assertIsFloat($outlet->currentA);
-        $this->assertIsFloat($outlet->powerW);
-        $this->assertIsFloat($outlet->peakPowerW);
-        $this->assertIsFloat($outlet->energyKwh);
+        $this->assertInstanceOf(ApcPduOutlet::class, $outlet);
+        $this->assertSame(1, $outlet->getOutletNumber());
+        $this->assertSame(1, $outlet->getPduIndex());
+    }
+
+    public function testGetOutletGetStatus(): void
+    {
+        $outlet = $this->pdu->getOutlet(1);
+        $status = $outlet->getStatus();
+
+        $this->assertInstanceOf(OutletStatus::class, $status);
+        $this->assertSame(1, $status->index);
+        $this->assertIsString($status->name);
+        $this->assertIsFloat($status->currentA);
+        $this->assertIsFloat($status->powerW);
+        $this->assertIsFloat($status->peakPowerW);
+        $this->assertIsFloat($status->energyKwh);
+    }
+
+    public function testGetOutletIndividualMethods(): void
+    {
+        $outlet = $this->pdu->getOutlet(1);
+
+        $this->assertIsString($outlet->getName());
+        $this->assertIsFloat($outlet->getPower());
+        $this->assertIsFloat($outlet->getCurrent());
+        $this->assertIsFloat($outlet->getEnergy());
+        $this->assertIsFloat($outlet->getPeakPower());
     }
 
     public function testGetAllOutlets(): void
@@ -134,9 +149,17 @@ abstract class AbstractSnmpIntegrationTestCase extends TestCase
             $this->assertIsInt($id);
             $this->assertGreaterThanOrEqual(1, $id);
             $this->assertLessThanOrEqual(24, $id);
-            $this->assertInstanceOf(OutletStatus::class, $outlet);
-            $this->assertSame($id, $outlet->index);
+            $this->assertInstanceOf(ApcPduOutlet::class, $outlet);
+            $this->assertSame($id, $outlet->getOutletNumber());
         }
+    }
+
+    public function testOutletIsWritable(): void
+    {
+        $outlet = $this->pdu->getOutlet(1);
+
+        // All SNMP clients should support write operations
+        $this->assertTrue($outlet->isWritable());
     }
 
     public function testGetPduInfo(): void

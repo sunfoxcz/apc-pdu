@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Sunfox\ApcPdu;
 
 use Sunfox\ApcPdu\Dto\DeviceStatus;
-use Sunfox\ApcPdu\Dto\OutletStatus;
 use Sunfox\ApcPdu\Dto\PduInfo;
 use Sunfox\ApcPdu\Protocol\ProtocolProviderInterface;
+use Sunfox\ApcPdu\Protocol\WritableProtocolProviderInterface;
 
 /**
  * APC PDU Reader with Network Port Sharing support
@@ -71,66 +71,28 @@ final class ApcPdu
     }
 
     /**
-     * Get a single outlet-level metric.
+     * Get an outlet object for reading metrics and optionally writing.
      *
-     * @param int $pduIndex PDU index (1-4)
      * @param int $outletNumber Outlet number on the given PDU (1-24)
-     * @param PduOutletMetric $metric OutletMetric::Power, etc.
-     * @return float|int|string Value in target units
+     * @param int $pduIndex PDU index (1-4, default 1)
      */
-    public function getOutlet(int $pduIndex, int $outletNumber, PduOutletMetric $metric): float|int|string
+    public function getOutlet(int $outletNumber, int $pduIndex = 1): ApcPduOutlet
     {
-        return $this->protocol->getOutletMetric($metric, $pduIndex, $outletNumber);
-    }
-
-    /**
-     * Get all metrics for one outlet as a DTO.
-     *
-     * Uses batch requests to fetch all metrics in a single SNMP call.
-     *
-     * @param int $pduIndex PDU index (1-4)
-     * @param int $outletNumber Outlet number on the given PDU (1-24)
-     */
-    public function getOutletStatus(int $pduIndex, int $outletNumber): OutletStatus
-    {
-        $metrics = $this->protocol->getOutletMetricsBatch($pduIndex, $outletNumber);
-
-        $stateValue = (int) ($metrics[OutletMetric::State->value] ?? 1);
-        $state = PowerState::tryFrom($stateValue) ?? PowerState::Off;
-
-        return new OutletStatus(
-            moduleIndex: (int) ($metrics[OutletMetric::ModuleIndex->value] ?? 0),
-            pduIndex: (int) ($metrics[OutletMetric::PduIndex->value] ?? 0),
-            name: (string) ($metrics[OutletMetric::Name->value] ?? ''),
-            index: (int) ($metrics[OutletMetric::Index->value] ?? 0),
-            state: $state,
-            currentA: (float) ($metrics[OutletMetric::Current->value] ?? 0.0),
-            powerW: (float) ($metrics[OutletMetric::Power->value] ?? 0.0),
-            peakPowerW: (float) ($metrics[OutletMetric::PeakPower->value] ?? 0.0),
-            peakPowerTimestamp: (string) ($metrics[OutletMetric::PeakPowerTimestamp->value] ?? ''),
-            energyResetTimestamp: (string) ($metrics[OutletMetric::EnergyResetTimestamp->value] ?? ''),
-            energyKwh: (float) ($metrics[OutletMetric::Energy->value] ?? 0.0),
-            outletType: (string) ($metrics[OutletMetric::OutletType->value] ?? ''),
-            externalLink: (string) ($metrics[OutletMetric::ExternalLink->value] ?? ''),
-        );
+        return new ApcPduOutlet($this->protocol, $pduIndex, $outletNumber);
     }
 
     /**
      * Get all outlets for one PDU.
      *
      * @param int $pduIndex PDU index (1-4, default 1)
-     * @return array<int, OutletStatus>
+     * @return array<int, ApcPduOutlet>
      */
     public function getAllOutlets(int $pduIndex = 1): array
     {
         $outlets = [];
 
         for ($i = 1; $i <= $this->protocol->getOutletsPerPdu(); $i++) {
-            try {
-                $outlets[$i] = $this->getOutletStatus($pduIndex, $i);
-            } catch (PduException) {
-                continue;
-            }
+            $outlets[$i] = $this->getOutlet($i, $pduIndex);
         }
 
         return $outlets;
@@ -143,10 +105,19 @@ final class ApcPdu
      */
     public function getPduInfo(int $pduIndex = 1): PduInfo
     {
+        $outletStatuses = [];
+        foreach ($this->getAllOutlets($pduIndex) as $i => $outlet) {
+            try {
+                $outletStatuses[$i] = $outlet->getStatus();
+            } catch (PduException) {
+                continue;
+            }
+        }
+
         return new PduInfo(
             pduIndex: $pduIndex,
             device: $this->getDeviceStatus($pduIndex),
-            outlets: $this->getAllOutlets($pduIndex),
+            outlets: $outletStatuses,
         );
     }
 
@@ -202,5 +173,76 @@ final class ApcPdu
     public function getOutletsPerPdu(): int
     {
         return $this->protocol->getOutletsPerPdu();
+    }
+
+    /**
+     * Check if the PDU supports write operations.
+     */
+    public function isWritable(): bool
+    {
+        if (!$this->protocol instanceof WritableProtocolProviderInterface) {
+            return false;
+        }
+
+        return $this->protocol->isWritable();
+    }
+
+    /**
+     * Reset the device peak power value to current load.
+     *
+     * @param int $pduIndex PDU index (1-4, default 1)
+     * @throws PduException If write operations are not supported
+     */
+    public function resetDevicePeakPower(int $pduIndex = 1): void
+    {
+        $this->getWritableProtocol()->resetDevicePeakPower($pduIndex);
+    }
+
+    /**
+     * Reset the device energy meter to zero.
+     *
+     * @param int $pduIndex PDU index (1-4, default 1)
+     * @throws PduException If write operations are not supported
+     */
+    public function resetDeviceEnergy(int $pduIndex = 1): void
+    {
+        $this->getWritableProtocol()->resetDeviceEnergy($pduIndex);
+    }
+
+    /**
+     * Reset all outlet energy meters to zero.
+     *
+     * @param int $pduIndex PDU index (1-4, default 1)
+     * @throws PduException If write operations are not supported
+     */
+    public function resetOutletsEnergy(int $pduIndex = 1): void
+    {
+        $this->getWritableProtocol()->resetOutletsEnergy($pduIndex);
+    }
+
+    /**
+     * Reset all outlet peak power values to current load.
+     *
+     * @param int $pduIndex PDU index (1-4, default 1)
+     * @throws PduException If write operations are not supported
+     */
+    public function resetOutletsPeakPower(int $pduIndex = 1): void
+    {
+        $this->getWritableProtocol()->resetOutletsPeakPower($pduIndex);
+    }
+
+    /**
+     * Get writable protocol provider or throw exception.
+     *
+     * @throws PduException If write operations are not supported
+     */
+    private function getWritableProtocol(): WritableProtocolProviderInterface
+    {
+        if (!$this->isWritable()) {
+            throw new PduException('Protocol does not support write operations');
+        }
+
+        /** @var WritableProtocolProviderInterface */
+        return $this->protocol;
     }
 }

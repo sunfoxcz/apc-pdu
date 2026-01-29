@@ -7,6 +7,7 @@ namespace Sunfox\ApcPdu\Tests\Unit\Protocol\Snmp;
 use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpClientInterface;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpFreeDsxClient;
+use Sunfox\ApcPdu\Protocol\Snmp\SnmpWritableClientInterface;
 use Sunfox\ApcPdu\SnmpFreeDsxNotFoundException;
 
 class SnmpFreeDsxClientTest extends TestCase
@@ -39,6 +40,17 @@ class SnmpFreeDsxClientTest extends TestCase
         $client = new SnmpFreeDsxClient('192.168.1.100');
 
         $this->assertInstanceOf(SnmpClientInterface::class, $client);
+    }
+
+    public function testImplementsWritableInterface(): void
+    {
+        if (!$this->freeDsxAvailable) {
+            $this->markTestSkipped('FreeDSx library not installed.');
+        }
+
+        $client = new SnmpFreeDsxClient('192.168.1.100');
+
+        $this->assertInstanceOf(SnmpWritableClientInterface::class, $client);
     }
 
     public function testGetHostReturnsHost(): void
