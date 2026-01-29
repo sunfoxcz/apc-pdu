@@ -10,6 +10,7 @@ use Sunfox\ApcPdu\Protocol\Snmp\SnmpNativeClient;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpV1Provider;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpV3Provider;
 use Sunfox\ApcPdu\Protocol\Ssh\SshProvider;
+use Sunfox\ApcPdu\NoSnmpClientAvailableException;
 
 final class ApcPduFactory
 {
@@ -77,7 +78,14 @@ final class ApcPduFactory
     }
 
     /**
-     * Create SNMPv1 connection (alias for snmpV1Native).
+     * Create SNMPv1 connection with automatic client discovery.
+     *
+     * Automatically selects the best available SNMP client in priority order:
+     * 1. SnmpBinaryClient (most efficient batch operations)
+     * 2. SnmpFreeDsxClient (efficient batch operations, no binary dependency)
+     * 3. SnmpNativeClient (fallback, slower batch operations)
+     *
+     * @throws NoSnmpClientAvailableException
      */
     public static function snmpV1(
         string $host,
@@ -86,7 +94,17 @@ final class ApcPduFactory
         int $timeout = 1000000,
         int $retries = 3,
     ): ApcPdu {
-        return self::snmpV1Native($host, $community, $outletsPerPdu, $timeout, $retries);
+        if (SnmpBinaryClient::isAvailable()) {
+            return self::snmpV1Binary($host, $community, $outletsPerPdu, $timeout, $retries);
+        }
+        if (SnmpFreeDsxClient::isAvailable()) {
+            return self::snmpV1FreeDsx($host, $community, $outletsPerPdu, $timeout, $retries);
+        }
+        if (SnmpNativeClient::isAvailable()) {
+            return self::snmpV1Native($host, $community, $outletsPerPdu, $timeout, $retries);
+        }
+
+        throw new NoSnmpClientAvailableException();
     }
 
     /**
@@ -189,7 +207,14 @@ final class ApcPduFactory
     }
 
     /**
-     * Create an SNMPv3 connection (alias for snmpV3Native).
+     * Create SNMPv3 connection with automatic client discovery.
+     *
+     * Automatically selects the best available SNMP client in priority order:
+     * 1. SnmpBinaryClient (most efficient batch operations)
+     * 2. SnmpFreeDsxClient (efficient batch operations, no binary dependency)
+     * 3. SnmpNativeClient (fallback, slower batch operations)
+     *
+     * @throws NoSnmpClientAvailableException
      */
     public static function snmpV3(
         string $host,
@@ -202,17 +227,47 @@ final class ApcPduFactory
         int $timeout = 1000000,
         int $retries = 3,
     ): ApcPdu {
-        return self::snmpV3Native(
-            $host,
-            $username,
-            $authPassphrase,
-            $privPassphrase,
-            $authProtocol,
-            $privProtocol,
-            $outletsPerPdu,
-            $timeout,
-            $retries,
-        );
+        if (SnmpBinaryClient::isAvailable()) {
+            return self::snmpV3Binary(
+                $host,
+                $username,
+                $authPassphrase,
+                $privPassphrase,
+                $authProtocol,
+                $privProtocol,
+                $outletsPerPdu,
+                $timeout,
+                $retries,
+            );
+        }
+        if (SnmpFreeDsxClient::isAvailable()) {
+            return self::snmpV3FreeDsx(
+                $host,
+                $username,
+                $authPassphrase,
+                $privPassphrase,
+                $authProtocol,
+                $privProtocol,
+                $outletsPerPdu,
+                $timeout,
+                $retries,
+            );
+        }
+        if (SnmpNativeClient::isAvailable()) {
+            return self::snmpV3Native(
+                $host,
+                $username,
+                $authPassphrase,
+                $privPassphrase,
+                $authProtocol,
+                $privProtocol,
+                $outletsPerPdu,
+                $timeout,
+                $retries,
+            );
+        }
+
+        throw new NoSnmpClientAvailableException();
     }
 
     public static function ssh(

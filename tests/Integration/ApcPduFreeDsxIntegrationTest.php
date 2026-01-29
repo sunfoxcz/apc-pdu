@@ -13,7 +13,7 @@ use Sunfox\ApcPdu\ApcPduFactory;
  * @group integration
  * @group freedsx
  */
-class ApcPduFreeDsxIntegrationTest extends AbstractSnmpIntegrationTest
+class ApcPduFreeDsxIntegrationTest extends AbstractSnmpIntegrationTestCase
 {
     protected function createPdu(
         string $host,

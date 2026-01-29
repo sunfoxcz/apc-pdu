@@ -42,26 +42,40 @@ $pdu = ApcPduFactory::snmpV3(
 
 ### Client Implementations
 
-The library provides multiple client implementations:
+The library provides multiple SNMP client implementations with automatic discovery:
 
 | Method | Description | Dependencies |
 |--------|-------------|--------------|
-| `snmpV1Native()` / `snmpV3Native()` | Uses PHP's native SNMP functions | `ext-snmp` |
+| `snmpV1()` / `snmpV3()` | **Auto-detects** best available client | Any of the below |
 | `snmpV1Binary()` / `snmpV3Binary()` | Uses the `snmpget` binary via shell | `net-snmp` package |
 | `snmpV1FreeDsx()` / `snmpV3FreeDsx()` | Uses the FreeDSx SNMP library | `freedsx/snmp` composer package |
+| `snmpV1Native()` / `snmpV3Native()` | Uses PHP's native SNMP functions | `ext-snmp` |
 | `ssh()` | Uses SSH/CLI interface | `ext-ssh2` |
 
-The default `snmpV1()` / `snmpV3()` methods use the **native** implementation for portability.
+#### Automatic Client Discovery
+
+The `snmpV1()` and `snmpV3()` methods automatically detect and use the best available SNMP client in priority order:
+
+1. **Binary** - Most efficient batch operations (`net-snmp` package)
+2. **FreeDSx** - Efficient batch operations, pure PHP (`freedsx/snmp`)
+3. **Native** - Fallback, slower batch operations (`ext-snmp`)
+
+If no client is available, a `NoSnmpClientAvailableException` is thrown.
 
 ```php
-// Native (default) - requires ext-snmp PHP extension
-$pdu = ApcPduFactory::snmpV3Native($host, $user, $authPass, $privPass);
+// Auto-detect best available client (recommended)
+$pdu = ApcPduFactory::snmpV3($host, $user, $authPass, $privPass);
+
+// Or explicitly choose a specific client:
 
 // Binary - requires net-snmp package (apt install snmp)
 $pdu = ApcPduFactory::snmpV3Binary($host, $user, $authPass, $privPass);
 
 // FreeDSx - pure PHP, no extensions required (composer require freedsx/snmp)
 $pdu = ApcPduFactory::snmpV3FreeDsx($host, $user, $authPass, $privPass);
+
+// Native - requires ext-snmp PHP extension
+$pdu = ApcPduFactory::snmpV3Native($host, $user, $authPass, $privPass);
 
 // SSH - uses CLI commands over SSH (requires ext-ssh2)
 $pdu = ApcPduFactory::ssh($host, $sshUser, $sshPass);

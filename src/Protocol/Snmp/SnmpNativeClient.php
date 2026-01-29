@@ -21,6 +21,11 @@ final class SnmpNativeClient implements SnmpClientInterface
     ) {
     }
 
+    public static function isAvailable(): bool
+    {
+        return extension_loaded('snmp');
+    }
+
     public function getV1(string $oid, string $community): string
     {
         $result = @snmpget($this->host, $community, $oid, $this->timeout, $this->retries);

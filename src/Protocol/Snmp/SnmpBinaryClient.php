@@ -22,6 +22,13 @@ final class SnmpBinaryClient implements SnmpClientInterface
     ) {
     }
 
+    public static function isAvailable(): bool
+    {
+        $output = shell_exec('which snmpget 2>/dev/null');
+
+        return $output !== null && trim($output) !== '';
+    }
+
     public function getV1(string $oid, string $community): string
     {
         $result = $this->getV1Batch([$oid], $community);

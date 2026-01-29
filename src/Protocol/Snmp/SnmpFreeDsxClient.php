@@ -51,6 +51,11 @@ final class SnmpFreeDsxClient implements SnmpClientInterface
         $this->timeoutSeconds = max(1, (int) ($timeout / 1000000));
     }
 
+    public static function isAvailable(): bool
+    {
+        return class_exists(SnmpClient::class);
+    }
+
     public function getV1(string $oid, string $community): string
     {
         $client = new SnmpClient([

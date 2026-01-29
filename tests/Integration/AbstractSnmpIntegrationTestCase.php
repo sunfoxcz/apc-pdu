@@ -17,7 +17,7 @@ use Sunfox\ApcPdu\OutletMetric;
  *
  * @group integration
  */
-abstract class AbstractSnmpIntegrationTest extends TestCase
+abstract class AbstractSnmpIntegrationTestCase extends TestCase
 {
     protected ?ApcPdu $pdu = null;
 
