@@ -14,4 +14,6 @@ interface PduOutletMetric
     public function unit(): string;
 
     public function isString(): bool;
+
+    public function isInteger(): bool;
 }

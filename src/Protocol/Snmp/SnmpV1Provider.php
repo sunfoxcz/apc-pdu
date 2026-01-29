@@ -26,16 +26,26 @@ final class SnmpV1Provider implements ProtocolProviderInterface
         $this->parser = new SnmpResponseParser();
     }
 
-    public function getDeviceMetric(DeviceMetric $metric, int $pduIndex): float
+    public function getDeviceMetric(DeviceMetric $metric, int $pduIndex): float|int|string
     {
         $oid = $this->oidMap->deviceOid($metric, $pduIndex);
         $raw = $this->client->getV1($oid, $this->community);
-        $value = $this->parser->parseNumeric($raw);
 
-        return $value / $this->oidMap->getDeviceDivisor($metric);
+        if ($metric->isString()) {
+            return $this->parser->parseString($raw);
+        }
+
+        $value = $this->parser->parseNumeric($raw);
+        $divisor = $this->oidMap->getDeviceDivisor($metric);
+
+        if ($metric->isInteger()) {
+            return (int) $value;
+        }
+
+        return $value / $divisor;
     }
 
-    public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|string
+    public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|int|string
     {
         $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
         $oid = $this->oidMap->outletOid($metric, $snmpIndex);
@@ -45,7 +55,14 @@ final class SnmpV1Provider implements ProtocolProviderInterface
             return $this->parser->parseString($raw);
         }
 
-        return $this->parser->parseNumeric($raw) / $this->oidMap->getOutletDivisor($metric);
+        $value = $this->parser->parseNumeric($raw);
+        $divisor = $this->oidMap->getOutletDivisor($metric);
+
+        if ($metric->isInteger()) {
+            return (int) $value;
+        }
+
+        return $value / $divisor;
     }
 
     public function getHost(): string

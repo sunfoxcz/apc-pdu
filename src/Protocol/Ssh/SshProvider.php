@@ -26,7 +26,7 @@ final class SshProvider implements ProtocolProviderInterface
         $this->parser = new ApcCliParser();
     }
 
-    public function getDeviceMetric(DeviceMetric $metric, int $pduIndex): float
+    public function getDeviceMetric(DeviceMetric $metric, int $pduIndex): float|int|string
     {
         // APC CLI commands for device metrics
         // Note: Actual CLI commands may vary by firmware version
@@ -34,6 +34,7 @@ final class SshProvider implements ProtocolProviderInterface
             DeviceMetric::Power => "phReading {$pduIndex} power",
             DeviceMetric::PeakPower => "phReading {$pduIndex} peakPower",
             DeviceMetric::Energy => "phReading {$pduIndex} energy",
+            default => throw new PduException("Device metric {$metric->value} not available via SSH"),
         };
 
         $output = $this->client->execute($command);
@@ -41,10 +42,11 @@ final class SshProvider implements ProtocolProviderInterface
         return match ($metric) {
             DeviceMetric::Power, DeviceMetric::PeakPower => $this->parser->parseDevicePower($output),
             DeviceMetric::Energy => $this->parser->parseDeviceEnergy($output),
+            default => throw new PduException("Device metric {$metric->value} not available via SSH"),
         };
     }
 
-    public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|string
+    public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|int|string
     {
         // Calculate global outlet number for NPS
         $globalOutlet = (($pduIndex - 1) * $this->outletsPerPdu) + $outletNumber;
@@ -57,7 +59,7 @@ final class SshProvider implements ProtocolProviderInterface
             $metric === OutletMetric::PeakPower => "olReading {$globalOutlet} peakPower",
             $metric === OutletMetric::Energy => "olReading {$globalOutlet} energy",
             $metric === OutletMetric::Index => throw new PduException('Index metric not available via SSH'),
-            default => throw new PduException('Unknown outlet metric'),
+            default => throw new PduException('Outlet metric not available via SSH'),
         };
 
         $output = $this->client->execute($command);
@@ -68,7 +70,7 @@ final class SshProvider implements ProtocolProviderInterface
             $metric === OutletMetric::Power,
             $metric === OutletMetric::PeakPower => $this->parser->parseOutletPower($output),
             $metric === OutletMetric::Energy => $this->parser->parseOutletEnergy($output),
-            default => throw new PduException('Unknown outlet metric'),
+            default => throw new PduException('Outlet metric not available via SSH'),
         };
     }
 

@@ -13,18 +13,18 @@ interface ProtocolProviderInterface
     /**
      * Get device-level metric value.
      *
-     * @return float Value in standard units (W for power, kWh for energy)
+     * @return float|int|string Value in standard units (W for power, kWh for energy)
      * @throws PduException
      */
-    public function getDeviceMetric(DeviceMetric $metric, int $pduIndex): float;
+    public function getDeviceMetric(DeviceMetric $metric, int $pduIndex): float|int|string;
 
     /**
      * Get outlet-level metric value.
      *
-     * @return float|string Value in standard units
+     * @return float|int|string Value in standard units
      * @throws PduException
      */
-    public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|string;
+    public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|int|string;
 
     public function getHost(): string;
 

@@ -112,7 +112,7 @@ class ApcPduIntegrationTest extends TestCase
         $outlet = $this->pdu->getOutletStatus(1, 1);
 
         $this->assertInstanceOf(OutletStatus::class, $outlet);
-        $this->assertSame(1, $outlet->number);
+        $this->assertSame(1, $outlet->index);
         $this->assertIsString($outlet->name);
         $this->assertIsFloat($outlet->currentA);
         $this->assertIsFloat($outlet->powerW);
@@ -132,7 +132,7 @@ class ApcPduIntegrationTest extends TestCase
             $this->assertGreaterThanOrEqual(1, $id);
             $this->assertLessThanOrEqual(24, $id);
             $this->assertInstanceOf(OutletStatus::class, $outlet);
-            $this->assertSame($id, $outlet->number);
+            $this->assertSame($id, $outlet->index);
         }
     }
 
