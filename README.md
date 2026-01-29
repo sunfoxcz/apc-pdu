@@ -36,6 +36,32 @@ $pdu = ApcPduFactory::snmpV3(
 );
 ```
 
+### Native vs Binary Client
+
+The library provides two SNMP client implementations:
+
+| Method | Description | Batch Performance |
+|--------|-------------|-------------------|
+| `snmpV1Native()` / `snmpV3Native()` | Uses PHP's native `snmpget()`/`snmp3_get()` functions | Loops over OIDs individually |
+| `snmpV1Binary()` / `snmpV3Binary()` | Uses the `snmpget` binary via shell | Fetches all OIDs in single command |
+
+The default `snmpV1()` / `snmpV3()` methods use the **native** implementation for portability.
+
+**When to use binary client:**
+- Fetching many metrics at once (e.g., `getFullStatus()`, `getAllOutlets()`)
+- Performance is critical
+- The `snmpget` binary is available (`apt install snmp` / `yum install net-snmp-utils`)
+
+```php
+// Native (default) - portable, no external dependencies
+$pdu = ApcPduFactory::snmpV3Native($host, $user, $authPass, $privPass);
+
+// Binary - faster batch operations, requires net-snmp package
+$pdu = ApcPduFactory::snmpV3Binary($host, $user, $authPass, $privPass);
+```
+
+Run `bin/benchmark` to compare performance on your system.
+
 ### Device-Level Metrics
 
 ```php
@@ -206,13 +232,10 @@ PowerState::On;  // 2
 cp .env.example .env
 # Edit .env with your settings
 
-# Run all tests
+# Run unit tests (default)
 docker compose run --rm php
 
-# Run only unit tests
-docker compose run --rm unit
-
-# Run only integration tests (requires real PDU)
+# Run integration tests (requires real PDU)
 docker compose run --rm integration
 
 # Run PHPStan analysis
@@ -223,6 +246,9 @@ docker compose run --rm phpcs
 
 # Auto-fix PSR-12 violations
 docker compose run --rm phpcbf
+
+# Run benchmark (requires real PDU)
+docker compose run --rm php bin/benchmark --help
 ```
 
 ### Without Docker

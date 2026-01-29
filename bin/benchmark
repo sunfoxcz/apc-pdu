@@ -1,0 +1,180 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Sunfox\ApcPdu\ApcPduFactory;
+use Sunfox\ApcPdu\DeviceMetric;
+use Sunfox\ApcPdu\OutletMetric;
+
+// Load .env file if it exists
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (str_starts_with(trim($line), '#')) {
+            continue;
+        }
+        if (str_contains($line, '=')) {
+            putenv(trim($line));
+        }
+    }
+}
+
+// Parse command line options
+$options = getopt('h:', ['host:', 'user:', 'auth:', 'priv:', 'community:', 'v1', 'help']);
+
+if (isset($options['help'])) {
+    echo <<<HELP
+APC PDU SNMP Benchmark
+
+Compares performance of native PHP SNMP functions vs snmpget binary.
+
+Usage:
+  SNMPv3: bin/benchmark [--host=<ip>] [--user=<user>] [--auth=<pass>] [--priv=<pass>]
+  SNMPv1: bin/benchmark [--host=<ip>] [--community=<community>] --v1
+
+Options:
+  --host        PDU IP address or hostname
+  --user        SNMPv3 username
+  --auth        SNMPv3 authentication passphrase
+  --priv        SNMPv3 privacy passphrase (optional)
+  --community   SNMPv1 community string (default: public)
+  --v1          Use SNMPv1 instead of SNMPv3
+  --help        Show this help message
+
+Configuration:
+  The script automatically loads .env file from the project root.
+  Command line options override environment variables.
+
+  Environment variables: PDU_HOST, PDU_SNMP_USER, PDU_SNMP_AUTH_PASS,
+                         PDU_SNMP_PRIV_PASS, PDU_SNMP_COMMUNITY
+
+HELP;
+    exit(0);
+}
+
+// Get connection parameters from options or environment
+$host = $options['host'] ?? $options['h'] ?? getenv('PDU_HOST') ?: null;
+$useV1 = isset($options['v1']);
+
+if (!$host) {
+    fwrite(STDERR, "Error: --host is required\n");
+    fwrite(STDERR, "Use --help for usage information\n");
+    exit(1);
+}
+
+if ($useV1) {
+    $community = $options['community'] ?? getenv('PDU_SNMP_COMMUNITY') ?: 'public';
+    echo "APC PDU SNMP Benchmark (SNMPv1)\n";
+    echo "Host: {$host}\n";
+    echo "Community: {$community}\n";
+    echo str_repeat('=', 60) . "\n\n";
+
+    $nativePdu = ApcPduFactory::snmpV1Native($host, $community);
+    $binaryPdu = ApcPduFactory::snmpV1Binary($host, $community);
+} else {
+    $user = $options['user'] ?? getenv('PDU_SNMP_USER') ?: null;
+    $authPass = $options['auth'] ?? getenv('PDU_SNMP_AUTH_PASS') ?: null;
+    $privPass = $options['priv'] ?? getenv('PDU_SNMP_PRIV_PASS') ?: '';
+
+    if (!$user || !$authPass) {
+        fwrite(STDERR, "Error: --user and --auth are required for SNMPv3\n");
+        fwrite(STDERR, "Use --v1 for SNMPv1 or --help for usage information\n");
+        exit(1);
+    }
+
+    echo "APC PDU SNMP Benchmark (SNMPv3)\n";
+    echo "Host: {$host}\n";
+    echo "User: {$user}\n";
+    echo str_repeat('=', 60) . "\n\n";
+
+    $nativePdu = ApcPduFactory::snmpV3Native($host, $user, $authPass, $privPass);
+    $binaryPdu = ApcPduFactory::snmpV3Binary($host, $user, $authPass, $privPass);
+}
+
+/**
+ * Run benchmark and return average time in seconds.
+ */
+function benchmark(callable $fn, int $iterations = 5): float
+{
+    // Warm up
+    $fn();
+
+    $times = [];
+    for ($i = 0; $i < $iterations; $i++) {
+        $start = microtime(true);
+        $fn();
+        $times[] = microtime(true) - $start;
+    }
+
+    return array_sum($times) / count($times);
+}
+
+/**
+ * Format time with appropriate unit.
+ */
+function formatTime(float $seconds): string
+{
+    if ($seconds < 1) {
+        return sprintf('%.0f ms', $seconds * 1000);
+    }
+    return sprintf('%.2f s', $seconds);
+}
+
+/**
+ * Print benchmark result row.
+ */
+function printResult(string $label, float $nativeTime, float $binaryTime): void
+{
+    $speedup = $nativeTime / $binaryTime;
+    printf(
+        "%-30s %12s %12s %10.1fx\n",
+        $label,
+        formatTime($nativeTime),
+        formatTime($binaryTime),
+        $speedup,
+    );
+}
+
+// Run benchmarks
+echo "Running benchmarks (5 iterations each)...\n\n";
+
+printf("%-30s %12s %12s %10s\n", 'Operation', 'Native', 'Binary', 'Speedup');
+echo str_repeat('-', 66) . "\n";
+
+// Single device metric
+$nativeTime = benchmark(fn() => $nativePdu->getDevice(DeviceMetric::Power));
+$binaryTime = benchmark(fn() => $binaryPdu->getDevice(DeviceMetric::Power));
+printResult('Single device metric', $nativeTime, $binaryTime);
+
+// All device metrics (batch)
+$nativeTime = benchmark(fn() => $nativePdu->getDeviceStatus());
+$binaryTime = benchmark(fn() => $binaryPdu->getDeviceStatus());
+printResult('All device metrics (batch)', $nativeTime, $binaryTime);
+
+// Single outlet metric
+$nativeTime = benchmark(fn() => $nativePdu->getOutlet(1, 1, OutletMetric::Power));
+$binaryTime = benchmark(fn() => $binaryPdu->getOutlet(1, 1, OutletMetric::Power));
+printResult('Single outlet metric', $nativeTime, $binaryTime);
+
+// All outlet metrics for one outlet (batch)
+$nativeTime = benchmark(fn() => $nativePdu->getOutletStatus(1, 1));
+$binaryTime = benchmark(fn() => $binaryPdu->getOutletStatus(1, 1));
+printResult('All outlet metrics (batch)', $nativeTime, $binaryTime);
+
+// All outlets (24 batch requests)
+$nativeTime = benchmark(fn() => $nativePdu->getAllOutlets(1), 3);
+$binaryTime = benchmark(fn() => $binaryPdu->getAllOutlets(1), 3);
+printResult('All 24 outlets', $nativeTime, $binaryTime);
+
+// Full status
+$nativeTime = benchmark(fn() => $nativePdu->getFullStatus(), 3);
+$binaryTime = benchmark(fn() => $binaryPdu->getFullStatus(), 3);
+printResult('Full PDU status', $nativeTime, $binaryTime);
+
+echo str_repeat('-', 66) . "\n";
+echo "\nNative:  Uses PHP's snmpget()/snmp3_get() - portable, no dependencies\n";
+echo "Binary:  Uses snmpget binary - faster batch operations, requires net-snmp\n";

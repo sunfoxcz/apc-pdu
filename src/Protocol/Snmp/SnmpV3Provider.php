@@ -11,23 +11,19 @@ use Sunfox\ApcPdu\Protocol\ProtocolProviderInterface;
 
 final class SnmpV3Provider implements ProtocolProviderInterface
 {
-    private SnmpClient $client;
     private ApcAp8xxxOidMap $oidMap;
     private SnmpResponseParser $parser;
     private string $securityLevel;
 
     public function __construct(
-        string $host,
+        private SnmpClientInterface $client,
         private string $username,
         private string $authPassphrase,
         private string $privPassphrase = '',
         private string $authProtocol = 'SHA',
         private string $privProtocol = 'AES',
         private int $outletsPerPdu = 24,
-        int $timeout = 1000000,
-        int $retries = 3,
     ) {
-        $this->client = new SnmpClient($host, $timeout, $retries);
         $this->oidMap = new ApcAp8xxxOidMap();
         $this->parser = new SnmpResponseParser();
         $this->securityLevel = $this->determineSecurityLevel();

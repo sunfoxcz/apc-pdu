@@ -11,18 +11,14 @@ use Sunfox\ApcPdu\Protocol\ProtocolProviderInterface;
 
 final class SnmpV1Provider implements ProtocolProviderInterface
 {
-    private SnmpClient $client;
     private ApcAp8xxxOidMap $oidMap;
     private SnmpResponseParser $parser;
 
     public function __construct(
-        string $host,
+        private SnmpClientInterface $client,
         private string $community = 'public',
         private int $outletsPerPdu = 24,
-        int $timeout = 1000000,
-        int $retries = 3,
     ) {
-        $this->client = new SnmpClient($host, $timeout, $retries);
         $this->oidMap = new ApcAp8xxxOidMap();
         $this->parser = new SnmpResponseParser();
     }
