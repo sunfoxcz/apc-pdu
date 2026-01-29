@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Sunfox\ApcPdu\Tests\Unit;
 
+use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\OutletMetric;
 use Sunfox\ApcPdu\PduOutletMetric;
-use PHPUnit\Framework\TestCase;
 
 class OutletMetricTest extends TestCase
 {
@@ -15,16 +15,6 @@ class OutletMetricTest extends TestCase
         foreach (OutletMetric::cases() as $case) {
             $this->assertInstanceOf(PduOutletMetric::class, $case);
         }
-    }
-
-    public function testOidSuffixes(): void
-    {
-        $this->assertSame(3, OutletMetric::Name->oidSuffix());
-        $this->assertSame(4, OutletMetric::Index->oidSuffix());
-        $this->assertSame(6, OutletMetric::Current->oidSuffix());
-        $this->assertSame(7, OutletMetric::Power->oidSuffix());
-        $this->assertSame(8, OutletMetric::PeakPower->oidSuffix());
-        $this->assertSame(11, OutletMetric::Energy->oidSuffix());
     }
 
     public function testUnits(): void
@@ -37,14 +27,14 @@ class OutletMetricTest extends TestCase
         $this->assertSame('kWh', OutletMetric::Energy->unit());
     }
 
-    public function testDivisors(): void
+    public function testEnumValues(): void
     {
-        $this->assertSame(1.0, OutletMetric::Name->divisor());
-        $this->assertSame(1.0, OutletMetric::Index->divisor());
-        $this->assertSame(10.0, OutletMetric::Current->divisor());
-        $this->assertSame(1.0, OutletMetric::Power->divisor());
-        $this->assertSame(1.0, OutletMetric::PeakPower->divisor());
-        $this->assertSame(10.0, OutletMetric::Energy->divisor());
+        $this->assertSame('name', OutletMetric::Name->value);
+        $this->assertSame('index', OutletMetric::Index->value);
+        $this->assertSame('current', OutletMetric::Current->value);
+        $this->assertSame('power', OutletMetric::Power->value);
+        $this->assertSame('peak_power', OutletMetric::PeakPower->value);
+        $this->assertSame('energy', OutletMetric::Energy->value);
     }
 
     public function testIsString(): void
@@ -55,5 +45,18 @@ class OutletMetricTest extends TestCase
         $this->assertFalse(OutletMetric::Power->isString());
         $this->assertFalse(OutletMetric::PeakPower->isString());
         $this->assertFalse(OutletMetric::Energy->isString());
+    }
+
+    public function testAllCasesExist(): void
+    {
+        $cases = OutletMetric::cases();
+
+        $this->assertCount(6, $cases);
+        $this->assertContains(OutletMetric::Name, $cases);
+        $this->assertContains(OutletMetric::Index, $cases);
+        $this->assertContains(OutletMetric::Current, $cases);
+        $this->assertContains(OutletMetric::Power, $cases);
+        $this->assertContains(OutletMetric::PeakPower, $cases);
+        $this->assertContains(OutletMetric::Energy, $cases);
     }
 }

@@ -9,11 +9,9 @@ namespace Sunfox\ApcPdu;
  */
 interface PduOutletMetric
 {
-    public function oidSuffix(): int;
+    public function value(): string;
 
     public function unit(): string;
-
-    public function divisor(): float;
 
     public function isString(): bool;
 }

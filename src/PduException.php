@@ -7,8 +7,8 @@ namespace Sunfox\ApcPdu;
 use RuntimeException;
 
 /**
- * Exception thrown when SNMP operations fail
+ * Exception thrown when PDU operations fail
  */
-class SnmpException extends RuntimeException
+class PduException extends RuntimeException
 {
 }

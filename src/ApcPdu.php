@@ -4,92 +4,22 @@ declare(strict_types=1);
 
 namespace Sunfox\ApcPdu;
 
+use Sunfox\ApcPdu\Dto\DeviceStatus;
+use Sunfox\ApcPdu\Dto\OutletStatus;
+use Sunfox\ApcPdu\Dto\PduInfo;
+use Sunfox\ApcPdu\Protocol\ProtocolProviderInterface;
+
 /**
- * APC PDU SNMP Reader with Network Port Sharing support
+ * APC PDU Reader with Network Port Sharing support
  *
- * Supports SNMPv1 and SNMPv3, reading from up to 4 daisy-chained PDUs.
+ * Protocol-agnostic facade supporting SNMP and SSH protocols.
  * Tested on AP8653.
  */
-class ApcPdu
+final class ApcPdu
 {
-    private string $host;
-    private int $outletsPerPdu;
-
-    // SNMP v1
-    private ?string $community = null;
-
-    // SNMP v3
-    private ?string $username = null;
-    private ?string $authPassphrase = null;
-    private ?string $privPassphrase = null;
-    private string $authProtocol = 'SHA';
-    private string $privProtocol = 'AES';
-    private string $securityLevel = 'authPriv';
-
-    private int $timeout;
-    private int $retries;
-
-    // Base OIDs
-    private const OID_DEVICE = '.1.3.6.1.4.1.318.1.1.26.4.3.1';
-    private const OID_OUTLET = '.1.3.6.1.4.1.318.1.1.26.9.4.3.1';
-
-    /**
-     * Create instance for SNMPv1
-     */
-    public static function v1(
-        string $host,
-        string $community = 'public',
-        int $outletsPerPdu = 24,
-        int $timeout = 1000000,
-        int $retries = 3
-    ): self {
-        $instance = new self($host, $outletsPerPdu, $timeout, $retries);
-        $instance->community = $community;
-        return $instance;
-    }
-
-    /**
-     * Create instance for SNMPv3
-     */
-    public static function v3(
-        string $host,
-        string $username,
-        string $authPassphrase,
-        string $privPassphrase = '',
-        string $authProtocol = 'SHA',
-        string $privProtocol = 'AES',
-        int $outletsPerPdu = 24,
-        int $timeout = 1000000,
-        int $retries = 3
-    ): self {
-        $instance = new self($host, $outletsPerPdu, $timeout, $retries);
-        $instance->username = $username;
-        $instance->authPassphrase = $authPassphrase;
-        $instance->privPassphrase = $privPassphrase;
-        $instance->authProtocol = $authProtocol;
-        $instance->privProtocol = $privProtocol;
-
-        if (!empty($privPassphrase)) {
-            $instance->securityLevel = 'authPriv';
-        } elseif (!empty($authPassphrase)) {
-            $instance->securityLevel = 'authNoPriv';
-        } else {
-            $instance->securityLevel = 'noAuthNoPriv';
-        }
-
-        return $instance;
-    }
-
-    private function __construct(
-        string $host,
-        int $outletsPerPdu = 24,
-        int $timeout = 1000000,
-        int $retries = 3
+    public function __construct(
+        private ProtocolProviderInterface $protocol,
     ) {
-        $this->host = $host;
-        $this->outletsPerPdu = $outletsPerPdu;
-        $this->timeout = $timeout;
-        $this->retries = $retries;
     }
 
     /**
@@ -101,24 +31,21 @@ class ApcPdu
      */
     public function getDevice(DeviceMetric $metric, int $pduIndex = 1): float
     {
-        $oid = self::OID_DEVICE . ".{$metric->oidSuffix()}.{$pduIndex}";
-        $raw = $this->snmpGetValue($oid);
-        return $raw / $metric->divisor();
+        return $this->protocol->getDeviceMetric($metric, $pduIndex);
     }
 
     /**
-     * Get all device-level metrics for one PDU.
+     * Get all device-level metrics as a DTO.
      *
      * @param int $pduIndex PDU index (1-4, default 1)
-     * @return array{power_w: float, peak_power_w: float, energy_kwh: float}
      */
-    public function getDeviceAll(int $pduIndex = 1): array
+    public function getDeviceStatus(int $pduIndex = 1): DeviceStatus
     {
-        return [
-            'power_w' => $this->getDevice(DeviceMetric::Power, $pduIndex),
-            'peak_power_w' => $this->getDevice(DeviceMetric::PeakPower, $pduIndex),
-            'energy_kwh' => $this->getDevice(DeviceMetric::Energy, $pduIndex),
-        ];
+        return new DeviceStatus(
+            powerW: $this->protocol->getDeviceMetric(DeviceMetric::Power, $pduIndex),
+            peakPowerW: $this->protocol->getDeviceMetric(DeviceMetric::PeakPower, $pduIndex),
+            energyKwh: $this->protocol->getDeviceMetric(DeviceMetric::Energy, $pduIndex),
+        );
     }
 
     /**
@@ -129,51 +56,43 @@ class ApcPdu
      * @param PduOutletMetric $metric OutletMetric::Power, etc.
      * @return float|string Value in target units
      */
-    public function getOutletStatus(int $pduIndex, int $outletNumber, PduOutletMetric $metric): float|string
+    public function getOutlet(int $pduIndex, int $outletNumber, PduOutletMetric $metric): float|string
     {
-        $snmpIndex = $this->outletToSnmpIndex($pduIndex, $outletNumber);
-        $oid = self::OID_OUTLET . ".{$metric->oidSuffix()}.{$snmpIndex}";
-
-        if ($metric->isString()) {
-            return $this->snmpGetString($oid);
-        }
-
-        $raw = $this->snmpGetValue($oid);
-        return $raw / $metric->divisor();
+        return $this->protocol->getOutletMetric($metric, $pduIndex, $outletNumber);
     }
 
     /**
-     * Get all metrics for one outlet.
+     * Get all metrics for one outlet as a DTO.
      *
      * @param int $pduIndex PDU index (1-4)
      * @param int $outletNumber Outlet number on the given PDU (1-24)
-     * @return array{name: string, current_a: float, power_w: float, peak_power_w: float, energy_kwh: float}
      */
-    public function getOutletAll(int $pduIndex, int $outletNumber): array
+    public function getOutletStatus(int $pduIndex, int $outletNumber): OutletStatus
     {
-        return [
-            'name' => $this->getOutletStatus($pduIndex, $outletNumber, OutletMetric::Name),
-            'current_a' => $this->getOutletStatus($pduIndex, $outletNumber, OutletMetric::Current),
-            'power_w' => $this->getOutletStatus($pduIndex, $outletNumber, OutletMetric::Power),
-            'peak_power_w' => $this->getOutletStatus($pduIndex, $outletNumber, OutletMetric::PeakPower),
-            'energy_kwh' => $this->getOutletStatus($pduIndex, $outletNumber, OutletMetric::Energy),
-        ];
+        return new OutletStatus(
+            number: $outletNumber,
+            name: (string) $this->protocol->getOutletMetric(OutletMetric::Name, $pduIndex, $outletNumber),
+            currentA: (float) $this->protocol->getOutletMetric(OutletMetric::Current, $pduIndex, $outletNumber),
+            powerW: (float) $this->protocol->getOutletMetric(OutletMetric::Power, $pduIndex, $outletNumber),
+            peakPowerW: (float) $this->protocol->getOutletMetric(OutletMetric::PeakPower, $pduIndex, $outletNumber),
+            energyKwh: (float) $this->protocol->getOutletMetric(OutletMetric::Energy, $pduIndex, $outletNumber),
+        );
     }
 
     /**
      * Get all outlets for one PDU.
      *
      * @param int $pduIndex PDU index (1-4, default 1)
-     * @return array<int, array{name: string, current_a: float, power_w: float, peak_power_w: float, energy_kwh: float}>
+     * @return array<int, OutletStatus>
      */
     public function getAllOutlets(int $pduIndex = 1): array
     {
         $outlets = [];
 
-        for ($i = 1; $i <= $this->outletsPerPdu; $i++) {
+        for ($i = 1; $i <= $this->protocol->getOutletsPerPdu(); $i++) {
             try {
-                $outlets[$i] = $this->getOutletAll($pduIndex, $i);
-            } catch (SnmpException $e) {
+                $outlets[$i] = $this->getOutletStatus($pduIndex, $i);
+            } catch (PduException) {
                 continue;
             }
         }
@@ -182,11 +101,25 @@ class ApcPdu
     }
 
     /**
+     * Get complete status for one PDU.
+     *
+     * @param int $pduIndex PDU index (1-4, default 1)
+     */
+    public function getPduInfo(int $pduIndex = 1): PduInfo
+    {
+        return new PduInfo(
+            pduIndex: $pduIndex,
+            device: $this->getDeviceStatus($pduIndex),
+            outlets: $this->getAllOutlets($pduIndex),
+        );
+    }
+
+    /**
      * Get complete status of all available PDUs.
      *
-     * Iterates through PDU indices 1-4 and stops when SNMP returns an error.
+     * Iterates through PDU indices 1-4 and stops when an error occurs.
      *
-     * @return array<string, array{device: array, outlets: array}>
+     * @return array<int, PduInfo>
      */
     public function getFullStatus(): array
     {
@@ -194,11 +127,8 @@ class ApcPdu
 
         for ($pduIndex = 1; $pduIndex <= 4; $pduIndex++) {
             try {
-                $result["pdu{$pduIndex}"] = [
-                    'device' => $this->getDeviceAll($pduIndex),
-                    'outlets' => $this->getAllOutlets($pduIndex),
-                ];
-            } catch (SnmpException $e) {
+                $result[$pduIndex] = $this->getPduInfo($pduIndex);
+            } catch (PduException) {
                 // PDU does not exist, stop iterating
                 break;
             }
@@ -215,9 +145,9 @@ class ApcPdu
     public function testConnection(int $pduIndex = 1): bool
     {
         try {
-            $this->getDevice(DeviceMetric::Power, $pduIndex);
+            $this->protocol->getDeviceMetric(DeviceMetric::Power, $pduIndex);
             return true;
-        } catch (SnmpException $e) {
+        } catch (PduException) {
             return false;
         }
     }
@@ -227,7 +157,7 @@ class ApcPdu
      */
     public function getHost(): string
     {
-        return $this->host;
+        return $this->protocol->getHost();
     }
 
     /**
@@ -235,82 +165,6 @@ class ApcPdu
      */
     public function getOutletsPerPdu(): int
     {
-        return $this->outletsPerPdu;
-    }
-
-    /**
-     * Convert PDU index + outlet number to SNMP index.
-     *
-     * PDU 1, outlet 1-24 -> SNMP index 1-24
-     * PDU 2, outlet 1-24 -> SNMP index 25-48
-     */
-    private function outletToSnmpIndex(int $pduIndex, int $outletNumber): int
-    {
-        return (($pduIndex - 1) * $this->outletsPerPdu) + $outletNumber;
-    }
-
-    /**
-     * Execute SNMP GET and return numeric value.
-     */
-    private function snmpGetValue(string $oid): float
-    {
-        $result = $this->snmpGet($oid);
-
-        if (preg_match('/[-]?\d+/', $result, $matches)) {
-            return (float) $matches[0];
-        }
-
-        throw new SnmpException("Could not parse SNMP value: {$result}");
-    }
-
-    /**
-     * Execute SNMP GET and return string value.
-     */
-    private function snmpGetString(string $oid): string
-    {
-        $result = $this->snmpGet($oid);
-        $value = preg_replace('/^STRING:\s*"?|"?\s*$/', '', $result);
-        return trim($value ?? '');
-    }
-
-    /**
-     * Execute SNMP GET (v1 or v3 based on configuration).
-     */
-    private function snmpGet(string $oid): string
-    {
-        if ($this->community !== null) {
-            // SNMPv1
-            $result = @snmpget(
-                $this->host,
-                $this->community,
-                $oid,
-                $this->timeout,
-                $this->retries
-            );
-        } else {
-            // SNMPv3
-            $result = @snmp3_get(
-                $this->host,
-                $this->username,
-                $this->securityLevel,
-                $this->authProtocol,
-                $this->authPassphrase,
-                $this->privProtocol,
-                $this->privPassphrase,
-                $oid,
-                $this->timeout,
-                $this->retries
-            );
-        }
-
-        if ($result === false) {
-            $error = error_get_last();
-            throw new SnmpException(
-                "SNMP GET failed for OID: {$oid}" .
-                ($error ? " - " . $error['message'] : "")
-            );
-        }
-
-        return $result;
+        return $this->protocol->getOutletsPerPdu();
     }
 }

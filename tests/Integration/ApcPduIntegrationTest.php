@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Sunfox\ApcPdu\Tests\Integration;
 
-use Sunfox\ApcPdu\ApcPdu;
-use Sunfox\ApcPdu\DeviceMetric;
-use Sunfox\ApcPdu\OutletMetric;
-use Sunfox\ApcPdu\SnmpException;
 use PHPUnit\Framework\TestCase;
+use Sunfox\ApcPdu\ApcPdu;
+use Sunfox\ApcPdu\ApcPduFactory;
+use Sunfox\ApcPdu\DeviceMetric;
+use Sunfox\ApcPdu\Dto\DeviceStatus;
+use Sunfox\ApcPdu\Dto\OutletStatus;
+use Sunfox\ApcPdu\Dto\PduInfo;
+use Sunfox\ApcPdu\OutletMetric;
 
 /**
  * Integration tests that require a real APC PDU device.
@@ -32,11 +35,11 @@ class ApcPduIntegrationTest extends TestCase
         if (empty($host) || empty($user) || empty($authPass)) {
             $this->markTestSkipped(
                 'PDU connection environment variables not set. ' .
-                'Set PDU_HOST, PDU_SNMP_USER, PDU_SNMP_AUTH_PASS, and optionally PDU_SNMP_PRIV_PASS.'
+                'Set PDU_HOST, PDU_SNMP_USER, PDU_SNMP_AUTH_PASS, and optionally PDU_SNMP_PRIV_PASS.',
             );
         }
 
-        $this->pdu = ApcPdu::v3($host, $user, $authPass, $privPass ?: '');
+        $this->pdu = ApcPduFactory::snmpV3($host, $user, $authPass, $privPass ?: '');
     }
 
     public function testConnectionWorks(): void
@@ -68,29 +71,29 @@ class ApcPduIntegrationTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $energy);
     }
 
-    public function testGetDeviceAll(): void
+    public function testGetDeviceStatus(): void
     {
-        $device = $this->pdu->getDeviceAll(1);
+        $device = $this->pdu->getDeviceStatus(1);
 
-        $this->assertArrayHasKey('power_w', $device);
-        $this->assertArrayHasKey('peak_power_w', $device);
-        $this->assertArrayHasKey('energy_kwh', $device);
-
-        $this->assertIsFloat($device['power_w']);
-        $this->assertIsFloat($device['peak_power_w']);
-        $this->assertIsFloat($device['energy_kwh']);
+        $this->assertInstanceOf(DeviceStatus::class, $device);
+        $this->assertIsFloat($device->powerW);
+        $this->assertIsFloat($device->peakPowerW);
+        $this->assertIsFloat($device->energyKwh);
+        $this->assertGreaterThanOrEqual(0, $device->powerW);
+        $this->assertGreaterThanOrEqual(0, $device->peakPowerW);
+        $this->assertGreaterThanOrEqual(0, $device->energyKwh);
     }
 
     public function testGetOutletName(): void
     {
-        $name = $this->pdu->getOutletStatus(1, 1, OutletMetric::Name);
+        $name = $this->pdu->getOutlet(1, 1, OutletMetric::Name);
 
         $this->assertIsString($name);
     }
 
     public function testGetOutletPower(): void
     {
-        $power = $this->pdu->getOutletStatus(1, 1, OutletMetric::Power);
+        $power = $this->pdu->getOutlet(1, 1, OutletMetric::Power);
 
         $this->assertIsFloat($power);
         $this->assertGreaterThanOrEqual(0, $power);
@@ -98,27 +101,23 @@ class ApcPduIntegrationTest extends TestCase
 
     public function testGetOutletCurrent(): void
     {
-        $current = $this->pdu->getOutletStatus(1, 1, OutletMetric::Current);
+        $current = $this->pdu->getOutlet(1, 1, OutletMetric::Current);
 
         $this->assertIsFloat($current);
         $this->assertGreaterThanOrEqual(0, $current);
     }
 
-    public function testGetOutletAll(): void
+    public function testGetOutletStatus(): void
     {
-        $outlet = $this->pdu->getOutletAll(1, 1);
+        $outlet = $this->pdu->getOutletStatus(1, 1);
 
-        $this->assertArrayHasKey('name', $outlet);
-        $this->assertArrayHasKey('current_a', $outlet);
-        $this->assertArrayHasKey('power_w', $outlet);
-        $this->assertArrayHasKey('peak_power_w', $outlet);
-        $this->assertArrayHasKey('energy_kwh', $outlet);
-
-        $this->assertIsString($outlet['name']);
-        $this->assertIsFloat($outlet['current_a']);
-        $this->assertIsFloat($outlet['power_w']);
-        $this->assertIsFloat($outlet['peak_power_w']);
-        $this->assertIsFloat($outlet['energy_kwh']);
+        $this->assertInstanceOf(OutletStatus::class, $outlet);
+        $this->assertSame(1, $outlet->number);
+        $this->assertIsString($outlet->name);
+        $this->assertIsFloat($outlet->currentA);
+        $this->assertIsFloat($outlet->powerW);
+        $this->assertIsFloat($outlet->peakPowerW);
+        $this->assertIsFloat($outlet->energyKwh);
     }
 
     public function testGetAllOutlets(): void
@@ -132,9 +131,20 @@ class ApcPduIntegrationTest extends TestCase
             $this->assertIsInt($id);
             $this->assertGreaterThanOrEqual(1, $id);
             $this->assertLessThanOrEqual(24, $id);
-            $this->assertArrayHasKey('name', $outlet);
-            $this->assertArrayHasKey('power_w', $outlet);
+            $this->assertInstanceOf(OutletStatus::class, $outlet);
+            $this->assertSame($id, $outlet->number);
         }
+    }
+
+    public function testGetPduInfo(): void
+    {
+        $status = $this->pdu->getPduInfo(1);
+
+        $this->assertInstanceOf(PduInfo::class, $status);
+        $this->assertSame(1, $status->pduIndex);
+        $this->assertInstanceOf(DeviceStatus::class, $status->device);
+        $this->assertIsArray($status->outlets);
+        $this->assertNotEmpty($status->outlets);
     }
 
     public function testGetFullStatus(): void
@@ -142,9 +152,10 @@ class ApcPduIntegrationTest extends TestCase
         $status = $this->pdu->getFullStatus();
 
         $this->assertIsArray($status);
-        $this->assertArrayHasKey('pdu1', $status);
-        $this->assertArrayHasKey('device', $status['pdu1']);
-        $this->assertArrayHasKey('outlets', $status['pdu1']);
+        $this->assertArrayHasKey(1, $status);
+        $this->assertInstanceOf(PduInfo::class, $status[1]);
+        $this->assertInstanceOf(DeviceStatus::class, $status[1]->device);
+        $this->assertIsArray($status[1]->outlets);
     }
 
     public function testPowerValuesAreReasonable(): void
@@ -156,7 +167,7 @@ class ApcPduIntegrationTest extends TestCase
         $this->assertLessThanOrEqual(
             $peakPower,
             $power,
-            'Current power should not exceed peak power'
+            'Current power should not exceed peak power',
         );
 
         // Power should be within reasonable range for a PDU (0 - 20000W)
