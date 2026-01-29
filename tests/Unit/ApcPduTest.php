@@ -88,26 +88,26 @@ class ApcPduTest extends TestCase
     public function testGetDeviceStatusReturnsDto(): void
     {
         $provider = $this->createMock(ProtocolProviderInterface::class);
-        $provider->method('getDeviceMetric')
-            ->willReturnMap([
-                [DeviceMetric::ModuleIndex, 1, 1],
-                [DeviceMetric::PduIndex, 1, 1],
-                [DeviceMetric::Name, 1, 'PDU-1'],
-                [DeviceMetric::LoadStatus, 1, 1],
-                [DeviceMetric::Power, 1, 1000.0],
-                [DeviceMetric::PeakPower, 1, 1500.0],
-                [DeviceMetric::PeakPowerTimestamp, 1, '2024-01-15 10:30:00'],
-                [DeviceMetric::EnergyResetTimestamp, 1, '2024-01-01 00:00:00'],
-                [DeviceMetric::Energy, 1, 123.4],
-                [DeviceMetric::EnergyStartTimestamp, 1, '2024-01-01 00:00:00'],
-                [DeviceMetric::ApparentPower, 1, 1100.0],
-                [DeviceMetric::PowerFactor, 1, 0.91],
-                [DeviceMetric::OutletCount, 1, 24],
-                [DeviceMetric::PhaseCount, 1, 3],
-                [DeviceMetric::PeakPowerResetTimestamp, 1, '2024-01-01 00:00:00'],
-                [DeviceMetric::LowLoadThreshold, 1, 20],
-                [DeviceMetric::NearOverloadThreshold, 1, 80],
-                [DeviceMetric::OverloadRestriction, 1, 1],
+        $provider->method('getDeviceMetricsBatch')
+            ->willReturn([
+                'module_index' => 1,
+                'pdu_index' => 1,
+                'name' => 'PDU-1',
+                'load_status' => 1,
+                'power' => 1000.0,
+                'peak_power' => 1500.0,
+                'peak_power_timestamp' => '2024-01-15 10:30:00',
+                'energy_reset_timestamp' => '2024-01-01 00:00:00',
+                'energy' => 123.4,
+                'energy_start_timestamp' => '2024-01-01 00:00:00',
+                'apparent_power' => 1100.0,
+                'power_factor' => 0.91,
+                'outlet_count' => 24,
+                'phase_count' => 3,
+                'peak_power_reset_timestamp' => '2024-01-01 00:00:00',
+                'low_load_threshold' => 20,
+                'near_overload_threshold' => 80,
+                'overload_restriction' => 1,
             ]);
 
         $pdu = new ApcPdu($provider);
@@ -150,21 +150,21 @@ class ApcPduTest extends TestCase
     public function testGetOutletStatusReturnsDto(): void
     {
         $provider = $this->createMock(ProtocolProviderInterface::class);
-        $provider->method('getOutletMetric')
-            ->willReturnMap([
-                [OutletMetric::ModuleIndex, 1, 5, 1],
-                [OutletMetric::PduIndex, 1, 5, 1],
-                [OutletMetric::Name, 1, 5, 'Server 1'],
-                [OutletMetric::Index, 1, 5, 5],
-                [OutletMetric::State, 1, 5, 2],
-                [OutletMetric::Current, 1, 5, 1.5],
-                [OutletMetric::Power, 1, 5, 150.0],
-                [OutletMetric::PeakPower, 1, 5, 200.0],
-                [OutletMetric::PeakPowerTimestamp, 1, 5, '2024-01-15 10:30:00'],
-                [OutletMetric::EnergyResetTimestamp, 1, 5, '2024-01-01 00:00:00'],
-                [OutletMetric::Energy, 1, 5, 50.5],
-                [OutletMetric::OutletType, 1, 5, 'IEC C13'],
-                [OutletMetric::ExternalLink, 1, 5, 'https://example.com'],
+        $provider->method('getOutletMetricsBatch')
+            ->willReturn([
+                'module_index' => 1,
+                'pdu_index' => 1,
+                'name' => 'Server 1',
+                'index' => 5,
+                'state' => 2,
+                'current' => 1.5,
+                'power' => 150.0,
+                'peak_power' => 200.0,
+                'peak_power_timestamp' => '2024-01-15 10:30:00',
+                'energy_reset_timestamp' => '2024-01-01 00:00:00',
+                'energy' => 50.5,
+                'outlet_type' => 'IEC C13',
+                'external_link' => 'https://example.com',
             ]);
 
         $pdu = new ApcPdu($provider);
@@ -190,14 +190,22 @@ class ApcPduTest extends TestCase
     {
         $provider = $this->createMock(ProtocolProviderInterface::class);
         $provider->method('getOutletsPerPdu')->willReturn(2);
-        $provider->method('getOutletMetric')
-            ->willReturnCallback(function ($metric) {
-                return match ($metric) {
-                    OutletMetric::Name => 'Outlet',
-                    OutletMetric::State => 2,
-                    default => 0,
-                };
-            });
+        $provider->method('getOutletMetricsBatch')
+            ->willReturn([
+                'module_index' => 1,
+                'pdu_index' => 1,
+                'name' => 'Outlet',
+                'index' => 1,
+                'state' => 2,
+                'current' => 0.0,
+                'power' => 0.0,
+                'peak_power' => 0.0,
+                'peak_power_timestamp' => '',
+                'energy_reset_timestamp' => '',
+                'energy' => 0.0,
+                'outlet_type' => '',
+                'external_link' => '',
+            ]);
 
         $pdu = new ApcPdu($provider);
         $outlets = $pdu->getAllOutlets();
@@ -213,16 +221,26 @@ class ApcPduTest extends TestCase
     {
         $provider = $this->createMock(ProtocolProviderInterface::class);
         $provider->method('getOutletsPerPdu')->willReturn(3);
-        $provider->method('getOutletMetric')
-            ->willReturnCallback(function ($metric, $pduIndex, $outletNumber) {
+        $provider->method('getOutletMetricsBatch')
+            ->willReturnCallback(function ($pduIndex, $outletNumber) {
                 if ($outletNumber === 2) {
                     throw new PduException('Outlet not available');
                 }
-                return match ($metric) {
-                    OutletMetric::Name => 'Outlet',
-                    OutletMetric::State => 2,
-                    default => 0,
-                };
+                return [
+                    'module_index' => 1,
+                    'pdu_index' => 1,
+                    'name' => 'Outlet',
+                    'index' => $outletNumber,
+                    'state' => 2,
+                    'current' => 0.0,
+                    'power' => 0.0,
+                    'peak_power' => 0.0,
+                    'peak_power_timestamp' => '',
+                    'energy_reset_timestamp' => '',
+                    'energy' => 0.0,
+                    'outlet_type' => '',
+                    'external_link' => '',
+                ];
             });
 
         $pdu = new ApcPdu($provider);
@@ -238,30 +256,43 @@ class ApcPduTest extends TestCase
     {
         $provider = $this->createMock(ProtocolProviderInterface::class);
         $provider->method('getOutletsPerPdu')->willReturn(1);
-        $provider->method('getDeviceMetric')
-            ->willReturnCallback(function ($metric) {
-                return match ($metric) {
-                    DeviceMetric::Name => 'PDU-1',
-                    DeviceMetric::LoadStatus => 1,
-                    DeviceMetric::PeakPowerTimestamp,
-                    DeviceMetric::EnergyResetTimestamp,
-                    DeviceMetric::EnergyStartTimestamp,
-                    DeviceMetric::PeakPowerResetTimestamp => '2024-01-01 00:00:00',
-                    default => 1000,
-                };
-            });
-        $provider->method('getOutletMetric')
-            ->willReturnCallback(function ($metric) {
-                return match ($metric) {
-                    OutletMetric::Name => 'Outlet',
-                    OutletMetric::State => 2,
-                    OutletMetric::PeakPowerTimestamp,
-                    OutletMetric::EnergyResetTimestamp,
-                    OutletMetric::OutletType,
-                    OutletMetric::ExternalLink => '',
-                    default => 0,
-                };
-            });
+        $provider->method('getDeviceMetricsBatch')
+            ->willReturn([
+                'module_index' => 1,
+                'pdu_index' => 1,
+                'name' => 'PDU-1',
+                'load_status' => 1,
+                'power' => 1000.0,
+                'peak_power' => 1000.0,
+                'peak_power_timestamp' => '2024-01-01 00:00:00',
+                'energy_reset_timestamp' => '2024-01-01 00:00:00',
+                'energy' => 1000.0,
+                'energy_start_timestamp' => '2024-01-01 00:00:00',
+                'apparent_power' => 1000.0,
+                'power_factor' => 1000.0,
+                'outlet_count' => 1000,
+                'phase_count' => 1000,
+                'peak_power_reset_timestamp' => '2024-01-01 00:00:00',
+                'low_load_threshold' => 1000,
+                'near_overload_threshold' => 1000,
+                'overload_restriction' => 1000,
+            ]);
+        $provider->method('getOutletMetricsBatch')
+            ->willReturn([
+                'module_index' => 1,
+                'pdu_index' => 1,
+                'name' => 'Outlet',
+                'index' => 1,
+                'state' => 2,
+                'current' => 0.0,
+                'power' => 0.0,
+                'peak_power' => 0.0,
+                'peak_power_timestamp' => '',
+                'energy_reset_timestamp' => '',
+                'energy' => 0.0,
+                'outlet_type' => '',
+                'external_link' => '',
+            ]);
 
         $pdu = new ApcPdu($provider);
         $status = $pdu->getPduInfo();
@@ -277,35 +308,50 @@ class ApcPduTest extends TestCase
         $callCount = 0;
         $provider = $this->createMock(ProtocolProviderInterface::class);
         $provider->method('getOutletsPerPdu')->willReturn(1);
-        $provider->method('getDeviceMetric')
-            ->willReturnCallback(function ($metric) use (&$callCount) {
+        $provider->method('getDeviceMetricsBatch')
+            ->willReturnCallback(function ($pduIndex) use (&$callCount) {
                 $callCount++;
-                // 18 metrics × 2 PDUs = 36 calls before failure
-                if ($callCount > 36) {
+                // First 2 calls succeed, then fail
+                if ($callCount > 2) {
                     throw new PduException('PDU not available');
                 }
-                return match ($metric) {
-                    DeviceMetric::Name => 'PDU',
-                    DeviceMetric::LoadStatus => 1,
-                    DeviceMetric::PeakPowerTimestamp,
-                    DeviceMetric::EnergyResetTimestamp,
-                    DeviceMetric::EnergyStartTimestamp,
-                    DeviceMetric::PeakPowerResetTimestamp => '2024-01-01 00:00:00',
-                    default => 1000,
-                };
+                return [
+                    'module_index' => 1,
+                    'pdu_index' => $pduIndex,
+                    'name' => 'PDU',
+                    'load_status' => 1,
+                    'power' => 1000.0,
+                    'peak_power' => 1000.0,
+                    'peak_power_timestamp' => '2024-01-01 00:00:00',
+                    'energy_reset_timestamp' => '2024-01-01 00:00:00',
+                    'energy' => 1000.0,
+                    'energy_start_timestamp' => '2024-01-01 00:00:00',
+                    'apparent_power' => 1000.0,
+                    'power_factor' => 1000.0,
+                    'outlet_count' => 1000,
+                    'phase_count' => 1000,
+                    'peak_power_reset_timestamp' => '2024-01-01 00:00:00',
+                    'low_load_threshold' => 1000,
+                    'near_overload_threshold' => 1000,
+                    'overload_restriction' => 1000,
+                ];
             });
-        $provider->method('getOutletMetric')
-            ->willReturnCallback(function ($metric) {
-                return match ($metric) {
-                    OutletMetric::Name => 'Outlet',
-                    OutletMetric::State => 2,
-                    OutletMetric::PeakPowerTimestamp,
-                    OutletMetric::EnergyResetTimestamp,
-                    OutletMetric::OutletType,
-                    OutletMetric::ExternalLink => '',
-                    default => 0,
-                };
-            });
+        $provider->method('getOutletMetricsBatch')
+            ->willReturn([
+                'module_index' => 1,
+                'pdu_index' => 1,
+                'name' => 'Outlet',
+                'index' => 1,
+                'state' => 2,
+                'current' => 0.0,
+                'power' => 0.0,
+                'peak_power' => 0.0,
+                'peak_power_timestamp' => '',
+                'energy_reset_timestamp' => '',
+                'energy' => 0.0,
+                'outlet_type' => '',
+                'external_link' => '',
+            ]);
 
         $pdu = new ApcPdu($provider);
         $status = $pdu->getFullStatus();

@@ -46,6 +46,30 @@ final class SshProvider implements ProtocolProviderInterface
         };
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function getDeviceMetricsBatch(int $pduIndex): array
+    {
+        // SSH doesn't support batching, but only a few metrics are available anyway
+        $results = [];
+        $availableMetrics = [
+            DeviceMetric::Power,
+            DeviceMetric::PeakPower,
+            DeviceMetric::Energy,
+        ];
+
+        foreach ($availableMetrics as $metric) {
+            try {
+                $results[$metric->value] = $this->getDeviceMetric($metric, $pduIndex);
+            } catch (PduException) {
+                // Skip unavailable metrics
+            }
+        }
+
+        return $results;
+    }
+
     public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|int|string
     {
         // Calculate global outlet number for NPS
@@ -72,6 +96,32 @@ final class SshProvider implements ProtocolProviderInterface
             $metric === OutletMetric::Energy => $this->parser->parseOutletEnergy($output),
             default => throw new PduException('Outlet metric not available via SSH'),
         };
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getOutletMetricsBatch(int $pduIndex, int $outletNumber): array
+    {
+        // SSH doesn't support batching, but only few metrics are available anyway
+        $results = [];
+        $availableMetrics = [
+            OutletMetric::Name,
+            OutletMetric::Current,
+            OutletMetric::Power,
+            OutletMetric::PeakPower,
+            OutletMetric::Energy,
+        ];
+
+        foreach ($availableMetrics as $metric) {
+            try {
+                $results[$metric->value] = $this->getOutletMetric($metric, $pduIndex, $outletNumber);
+            } catch (PduException) {
+                // Skip unavailable metrics
+            }
+        }
+
+        return $results;
     }
 
     public function getHost(): string

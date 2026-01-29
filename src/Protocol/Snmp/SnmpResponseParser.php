@@ -18,10 +18,38 @@ final class SnmpResponseParser
         throw new PduException("Could not parse SNMP value: {$raw}");
     }
 
+    /**
+     * Parse numeric value from batch output (values only, no type prefix).
+     *
+     * With -Oqv flag, snmpget returns just the value without type prefix.
+     * Examples: "1234", "5000", "-10"
+     */
+    public function parseNumericBatch(string $raw): float
+    {
+        $value = trim($raw, " \t\n\r\0\x0B\"");
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        // Fallback to standard parsing if there's a type prefix
+        return $this->parseNumeric($raw);
+    }
+
     public function parseString(string $raw): string
     {
         $value = preg_replace('/^STRING:\s*"?|"?\s*$/', '', $raw);
 
         return trim($value ?? '');
+    }
+
+    /**
+     * Parse string value from batch output (values only, no type prefix).
+     *
+     * With -Oqv flag, snmpget returns just the value, possibly quoted.
+     */
+    public function parseStringBatch(string $raw): string
+    {
+        return trim($raw, " \t\n\r\0\x0B\"");
     }
 }

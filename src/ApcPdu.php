@@ -37,44 +37,36 @@ final class ApcPdu
     /**
      * Get all device-level metrics as a DTO.
      *
+     * Uses batch requests to fetch all metrics in a single SNMP call.
+     *
      * @param int $pduIndex PDU index (1-4, default 1)
      */
     public function getDeviceStatus(int $pduIndex = 1): DeviceStatus
     {
-        $loadStatusValue = (int) $this->protocol->getDeviceMetric(DeviceMetric::LoadStatus, $pduIndex);
+        $metrics = $this->protocol->getDeviceMetricsBatch($pduIndex);
+
+        $loadStatusValue = (int) ($metrics[DeviceMetric::LoadStatus->value] ?? 1);
         $loadStatus = LoadStatus::tryFrom($loadStatusValue) ?? LoadStatus::Normal;
 
         return new DeviceStatus(
-            moduleIndex: (int) $this->protocol->getDeviceMetric(DeviceMetric::ModuleIndex, $pduIndex),
-            pduIndex: (int) $this->protocol->getDeviceMetric(DeviceMetric::PduIndex, $pduIndex),
-            name: (string) $this->protocol->getDeviceMetric(DeviceMetric::Name, $pduIndex),
+            moduleIndex: (int) ($metrics[DeviceMetric::ModuleIndex->value] ?? 0),
+            pduIndex: (int) ($metrics[DeviceMetric::PduIndex->value] ?? 0),
+            name: (string) ($metrics[DeviceMetric::Name->value] ?? ''),
             loadStatus: $loadStatus,
-            powerW: (float) $this->protocol->getDeviceMetric(DeviceMetric::Power, $pduIndex),
-            peakPowerW: (float) $this->protocol->getDeviceMetric(DeviceMetric::PeakPower, $pduIndex),
-            peakPowerTimestamp: (string) $this->protocol->getDeviceMetric(DeviceMetric::PeakPowerTimestamp, $pduIndex),
-            energyResetTimestamp: (string) $this->protocol->getDeviceMetric(
-                DeviceMetric::EnergyResetTimestamp,
-                $pduIndex,
-            ),
-            energyKwh: (float) $this->protocol->getDeviceMetric(DeviceMetric::Energy, $pduIndex),
-            energyStartTimestamp: (string) $this->protocol->getDeviceMetric(
-                DeviceMetric::EnergyStartTimestamp,
-                $pduIndex,
-            ),
-            apparentPowerVa: (float) $this->protocol->getDeviceMetric(DeviceMetric::ApparentPower, $pduIndex),
-            powerFactor: (float) $this->protocol->getDeviceMetric(DeviceMetric::PowerFactor, $pduIndex),
-            outletCount: (int) $this->protocol->getDeviceMetric(DeviceMetric::OutletCount, $pduIndex),
-            phaseCount: (int) $this->protocol->getDeviceMetric(DeviceMetric::PhaseCount, $pduIndex),
-            peakPowerResetTimestamp: (string) $this->protocol->getDeviceMetric(
-                DeviceMetric::PeakPowerResetTimestamp,
-                $pduIndex,
-            ),
-            lowLoadThreshold: (int) $this->protocol->getDeviceMetric(DeviceMetric::LowLoadThreshold, $pduIndex),
-            nearOverloadThreshold: (int) $this->protocol->getDeviceMetric(
-                DeviceMetric::NearOverloadThreshold,
-                $pduIndex,
-            ),
-            overloadRestriction: (int) $this->protocol->getDeviceMetric(DeviceMetric::OverloadRestriction, $pduIndex),
+            powerW: (float) ($metrics[DeviceMetric::Power->value] ?? 0.0),
+            peakPowerW: (float) ($metrics[DeviceMetric::PeakPower->value] ?? 0.0),
+            peakPowerTimestamp: (string) ($metrics[DeviceMetric::PeakPowerTimestamp->value] ?? ''),
+            energyResetTimestamp: (string) ($metrics[DeviceMetric::EnergyResetTimestamp->value] ?? ''),
+            energyKwh: (float) ($metrics[DeviceMetric::Energy->value] ?? 0.0),
+            energyStartTimestamp: (string) ($metrics[DeviceMetric::EnergyStartTimestamp->value] ?? ''),
+            apparentPowerVa: (float) ($metrics[DeviceMetric::ApparentPower->value] ?? 0.0),
+            powerFactor: (float) ($metrics[DeviceMetric::PowerFactor->value] ?? 0.0),
+            outletCount: (int) ($metrics[DeviceMetric::OutletCount->value] ?? 0),
+            phaseCount: (int) ($metrics[DeviceMetric::PhaseCount->value] ?? 0),
+            peakPowerResetTimestamp: (string) ($metrics[DeviceMetric::PeakPowerResetTimestamp->value] ?? ''),
+            lowLoadThreshold: (int) ($metrics[DeviceMetric::LowLoadThreshold->value] ?? 0),
+            nearOverloadThreshold: (int) ($metrics[DeviceMetric::NearOverloadThreshold->value] ?? 0),
+            overloadRestriction: (int) ($metrics[DeviceMetric::OverloadRestriction->value] ?? 0),
         );
     }
 
@@ -94,40 +86,32 @@ final class ApcPdu
     /**
      * Get all metrics for one outlet as a DTO.
      *
+     * Uses batch requests to fetch all metrics in a single SNMP call.
+     *
      * @param int $pduIndex PDU index (1-4)
      * @param int $outletNumber Outlet number on the given PDU (1-24)
      */
     public function getOutletStatus(int $pduIndex, int $outletNumber): OutletStatus
     {
-        $stateValue = (int) $this->protocol->getOutletMetric(OutletMetric::State, $pduIndex, $outletNumber);
+        $metrics = $this->protocol->getOutletMetricsBatch($pduIndex, $outletNumber);
+
+        $stateValue = (int) ($metrics[OutletMetric::State->value] ?? 1);
         $state = PowerState::tryFrom($stateValue) ?? PowerState::Off;
 
         return new OutletStatus(
-            moduleIndex: (int) $this->protocol->getOutletMetric(OutletMetric::ModuleIndex, $pduIndex, $outletNumber),
-            pduIndex: (int) $this->protocol->getOutletMetric(OutletMetric::PduIndex, $pduIndex, $outletNumber),
-            name: (string) $this->protocol->getOutletMetric(OutletMetric::Name, $pduIndex, $outletNumber),
-            index: (int) $this->protocol->getOutletMetric(OutletMetric::Index, $pduIndex, $outletNumber),
+            moduleIndex: (int) ($metrics[OutletMetric::ModuleIndex->value] ?? 0),
+            pduIndex: (int) ($metrics[OutletMetric::PduIndex->value] ?? 0),
+            name: (string) ($metrics[OutletMetric::Name->value] ?? ''),
+            index: (int) ($metrics[OutletMetric::Index->value] ?? 0),
             state: $state,
-            currentA: (float) $this->protocol->getOutletMetric(OutletMetric::Current, $pduIndex, $outletNumber),
-            powerW: (float) $this->protocol->getOutletMetric(OutletMetric::Power, $pduIndex, $outletNumber),
-            peakPowerW: (float) $this->protocol->getOutletMetric(OutletMetric::PeakPower, $pduIndex, $outletNumber),
-            peakPowerTimestamp: (string) $this->protocol->getOutletMetric(
-                OutletMetric::PeakPowerTimestamp,
-                $pduIndex,
-                $outletNumber,
-            ),
-            energyResetTimestamp: (string) $this->protocol->getOutletMetric(
-                OutletMetric::EnergyResetTimestamp,
-                $pduIndex,
-                $outletNumber,
-            ),
-            energyKwh: (float) $this->protocol->getOutletMetric(OutletMetric::Energy, $pduIndex, $outletNumber),
-            outletType: (string) $this->protocol->getOutletMetric(OutletMetric::OutletType, $pduIndex, $outletNumber),
-            externalLink: (string) $this->protocol->getOutletMetric(
-                OutletMetric::ExternalLink,
-                $pduIndex,
-                $outletNumber,
-            ),
+            currentA: (float) ($metrics[OutletMetric::Current->value] ?? 0.0),
+            powerW: (float) ($metrics[OutletMetric::Power->value] ?? 0.0),
+            peakPowerW: (float) ($metrics[OutletMetric::PeakPower->value] ?? 0.0),
+            peakPowerTimestamp: (string) ($metrics[OutletMetric::PeakPowerTimestamp->value] ?? ''),
+            energyResetTimestamp: (string) ($metrics[OutletMetric::EnergyResetTimestamp->value] ?? ''),
+            energyKwh: (float) ($metrics[OutletMetric::Energy->value] ?? 0.0),
+            outletType: (string) ($metrics[OutletMetric::OutletType->value] ?? ''),
+            externalLink: (string) ($metrics[OutletMetric::ExternalLink->value] ?? ''),
         );
     }
 

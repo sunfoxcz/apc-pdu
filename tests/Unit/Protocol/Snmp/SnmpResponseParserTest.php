@@ -64,4 +64,49 @@ class SnmpResponseParserTest extends TestCase
     {
         $this->assertSame('', $this->parser->parseString('STRING: ""'));
     }
+
+    public function testParseNumericBatchPlainNumber(): void
+    {
+        $this->assertSame(1234.0, $this->parser->parseNumericBatch('1234'));
+    }
+
+    public function testParseNumericBatchNegative(): void
+    {
+        $this->assertSame(-100.0, $this->parser->parseNumericBatch('-100'));
+    }
+
+    public function testParseNumericBatchWithWhitespace(): void
+    {
+        $this->assertSame(5000.0, $this->parser->parseNumericBatch('  5000  '));
+    }
+
+    public function testParseNumericBatchFloat(): void
+    {
+        $this->assertSame(123.45, $this->parser->parseNumericBatch('123.45'));
+    }
+
+    public function testParseNumericBatchFallsBackToStandardParsing(): void
+    {
+        $this->assertSame(1234.0, $this->parser->parseNumericBatch('INTEGER: 1234'));
+    }
+
+    public function testParseStringBatchPlainValue(): void
+    {
+        $this->assertSame('Server 1', $this->parser->parseStringBatch('Server 1'));
+    }
+
+    public function testParseStringBatchWithQuotes(): void
+    {
+        $this->assertSame('Server 1', $this->parser->parseStringBatch('"Server 1"'));
+    }
+
+    public function testParseStringBatchTrimsWhitespace(): void
+    {
+        $this->assertSame('Test', $this->parser->parseStringBatch('  Test  '));
+    }
+
+    public function testParseStringBatchEmpty(): void
+    {
+        $this->assertSame('', $this->parser->parseStringBatch('""'));
+    }
 }
