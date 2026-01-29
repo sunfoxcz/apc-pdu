@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use Sunfox\ApcPdu\ApcPdu;
 use Sunfox\ApcPdu\ApcPduFactory;
 use Sunfox\ApcPdu\DeviceMetric;
 use Sunfox\ApcPdu\OutletMetric;
@@ -24,17 +25,18 @@ if (file_exists($envFile)) {
 }
 
 // Parse command line options
-$options = getopt('h:', ['host:', 'user:', 'auth:', 'priv:', 'community:', 'v1', 'help']);
+$options = getopt('h:', ['host:', 'user:', 'auth:', 'priv:', 'community:', 'ssh-user:', 'ssh-pass:', 'v1', 'ssh', 'help']);
 
 if (isset($options['help'])) {
     echo <<<HELP
 APC PDU SNMP Benchmark
 
-Compares performance of Native (ext-snmp), Binary (net-snmp), and FreeDSx clients.
+Compares performance of Native (ext-snmp), Binary (net-snmp), FreeDSx, and SSH clients.
 
 Usage:
   SNMPv3: bin/benchmark [--host=<ip>] [--user=<user>] [--auth=<pass>] [--priv=<pass>]
   SNMPv1: bin/benchmark [--host=<ip>] [--community=<community>] --v1
+  SSH:    bin/benchmark [--host=<ip>] [--ssh-user=<user>] [--ssh-pass=<pass>] --ssh
 
 Options:
   --host        PDU IP address or hostname
@@ -42,7 +44,10 @@ Options:
   --auth        SNMPv3 authentication passphrase
   --priv        SNMPv3 privacy passphrase (optional)
   --community   SNMPv1 community string (default: public)
+  --ssh-user    SSH username
+  --ssh-pass    SSH password
   --v1          Use SNMPv1 instead of SNMPv3
+  --ssh         Include SSH client in benchmark (requires --ssh-user and --ssh-pass)
   --help        Show this help message
 
 Configuration:
@@ -50,7 +55,8 @@ Configuration:
   Command line options override environment variables.
 
   Environment variables: PDU_HOST, PDU_SNMP_USER, PDU_SNMP_AUTH_PASS,
-                         PDU_SNMP_PRIV_PASS, PDU_SNMP_COMMUNITY
+                         PDU_SNMP_PRIV_PASS, PDU_SNMP_COMMUNITY,
+                         PDU_SSH_USER, PDU_SSH_PASS
 
 HELP;
     exit(0);
@@ -59,6 +65,11 @@ HELP;
 // Get connection parameters from options or environment
 $host = $options['host'] ?? $options['h'] ?? getenv('PDU_HOST') ?: null;
 $useV1 = isset($options['v1']);
+$useSsh = isset($options['ssh']);
+
+// SSH credentials (optional, for --ssh mode)
+$sshUser = $options['ssh-user'] ?? getenv('PDU_SSH_USER') ?: null;
+$sshPass = $options['ssh-pass'] ?? getenv('PDU_SSH_PASS') ?: null;
 
 if (!$host) {
     fwrite(STDERR, "Error: --host is required\n");
@@ -66,9 +77,20 @@ if (!$host) {
     exit(1);
 }
 
+/** @var ApcPdu|null $sshPdu */
+$sshPdu = null;
+if ($useSsh) {
+    if (!$sshUser || !$sshPass) {
+        fwrite(STDERR, "Error: --ssh-user and --ssh-pass are required for SSH\n");
+        fwrite(STDERR, "Use --help for usage information\n");
+        exit(1);
+    }
+    $sshPdu = ApcPduFactory::ssh($host, $sshUser, $sshPass);
+}
+
 if ($useV1) {
     $community = $options['community'] ?? getenv('PDU_SNMP_COMMUNITY') ?: 'public';
-    echo "APC PDU SNMP Benchmark (SNMPv1)\n";
+    echo "APC PDU Benchmark (SNMPv1" . ($useSsh ? " + SSH" : "") . ")\n";
     echo "Host: {$host}\n";
     echo "Community: {$community}\n";
     echo str_repeat('=', 70) . "\n\n";
@@ -87,7 +109,7 @@ if ($useV1) {
         exit(1);
     }
 
-    echo "APC PDU SNMP Benchmark (SNMPv3)\n";
+    echo "APC PDU Benchmark (SNMPv3" . ($useSsh ? " + SSH" : "") . ")\n";
     echo "Host: {$host}\n";
     echo "User: {$user}\n";
     echo str_repeat('=', 70) . "\n\n";
@@ -129,61 +151,89 @@ function formatTime(float $seconds): string
 /**
  * Print benchmark result row.
  */
-function printResult(string $label, float $nativeTime, float $binaryTime, float $freedsxTime): void
+function printResult(string $label, float $nativeTime, float $binaryTime, float $freedsxTime, ?float $sshTime = null): void
 {
-    $fastestTime = min($nativeTime, $binaryTime, $freedsxTime);
-    printf(
-        "%-25s %10s %10s %10s\n",
-        $label,
-        formatTime($nativeTime),
-        formatTime($binaryTime),
-        formatTime($freedsxTime),
-    );
+    if ($sshTime !== null) {
+        printf(
+            "%-25s %10s %10s %10s %10s\n",
+            $label,
+            formatTime($nativeTime),
+            formatTime($binaryTime),
+            formatTime($freedsxTime),
+            formatTime($sshTime),
+        );
+    } else {
+        printf(
+            "%-25s %10s %10s %10s\n",
+            $label,
+            formatTime($nativeTime),
+            formatTime($binaryTime),
+            formatTime($freedsxTime),
+        );
+    }
 }
 
 // Run benchmarks
 echo "Running benchmarks (5 iterations each)...\n\n";
 
-printf("%-25s %10s %10s %10s\n", 'Operation', 'Native', 'Binary', 'FreeDSx');
-echo str_repeat('-', 58) . "\n";
+if ($sshPdu !== null) {
+    printf("%-25s %10s %10s %10s %10s\n", 'Operation', 'Native', 'Binary', 'FreeDSx', 'SSH');
+    echo str_repeat('-', 69) . "\n";
+} else {
+    printf("%-25s %10s %10s %10s\n", 'Operation', 'Native', 'Binary', 'FreeDSx');
+    echo str_repeat('-', 58) . "\n";
+}
 
 // Single device metric
 $nativeTime = benchmark(fn() => $nativePdu->getDevice(DeviceMetric::Power));
 $binaryTime = benchmark(fn() => $binaryPdu->getDevice(DeviceMetric::Power));
 $freedsxTime = benchmark(fn() => $freedsxPdu->getDevice(DeviceMetric::Power));
-printResult('Single device metric', $nativeTime, $binaryTime, $freedsxTime);
+$sshTime = $sshPdu !== null ? benchmark(fn() => $sshPdu->getDevice(DeviceMetric::Power)) : null;
+printResult('Single device metric', $nativeTime, $binaryTime, $freedsxTime, $sshTime);
 
-// All device metrics (batch)
+// All device metrics (batch) - SSH only supports Power, PeakPower, Energy
 $nativeTime = benchmark(fn() => $nativePdu->getDeviceStatus());
 $binaryTime = benchmark(fn() => $binaryPdu->getDeviceStatus());
 $freedsxTime = benchmark(fn() => $freedsxPdu->getDeviceStatus());
-printResult('Device metrics (batch)', $nativeTime, $binaryTime, $freedsxTime);
+// SSH doesn't support full device status, skip this test
+printResult('Device metrics (batch)', $nativeTime, $binaryTime, $freedsxTime, null);
 
 // Single outlet metric
 $nativeTime = benchmark(fn() => $nativePdu->getOutlet(1, 1, OutletMetric::Power));
 $binaryTime = benchmark(fn() => $binaryPdu->getOutlet(1, 1, OutletMetric::Power));
 $freedsxTime = benchmark(fn() => $freedsxPdu->getOutlet(1, 1, OutletMetric::Power));
-printResult('Single outlet metric', $nativeTime, $binaryTime, $freedsxTime);
+$sshTime = $sshPdu !== null ? benchmark(fn() => $sshPdu->getOutlet(1, 1, OutletMetric::Power)) : null;
+printResult('Single outlet metric', $nativeTime, $binaryTime, $freedsxTime, $sshTime);
 
-// All outlet metrics for one outlet (batch)
+// All outlet metrics for one outlet (batch) - SSH only supports limited metrics
 $nativeTime = benchmark(fn() => $nativePdu->getOutletStatus(1, 1));
 $binaryTime = benchmark(fn() => $binaryPdu->getOutletStatus(1, 1));
 $freedsxTime = benchmark(fn() => $freedsxPdu->getOutletStatus(1, 1));
-printResult('Outlet metrics (batch)', $nativeTime, $binaryTime, $freedsxTime);
+// SSH doesn't support full outlet status, skip this test
+printResult('Outlet metrics (batch)', $nativeTime, $binaryTime, $freedsxTime, null);
 
 // All outlets (24 batch requests)
 $nativeTime = benchmark(fn() => $nativePdu->getAllOutlets(1), 3);
 $binaryTime = benchmark(fn() => $binaryPdu->getAllOutlets(1), 3);
 $freedsxTime = benchmark(fn() => $freedsxPdu->getAllOutlets(1), 3);
-printResult('All 24 outlets', $nativeTime, $binaryTime, $freedsxTime);
+// SSH doesn't support full outlet status, skip this test
+printResult('All 24 outlets', $nativeTime, $binaryTime, $freedsxTime, null);
 
 // Full status
 $nativeTime = benchmark(fn() => $nativePdu->getFullStatus(), 3);
 $binaryTime = benchmark(fn() => $binaryPdu->getFullStatus(), 3);
 $freedsxTime = benchmark(fn() => $freedsxPdu->getFullStatus(), 3);
-printResult('Full PDU status', $nativeTime, $binaryTime, $freedsxTime);
+// SSH doesn't support full status, skip this test
+printResult('Full PDU status', $nativeTime, $binaryTime, $freedsxTime, null);
 
-echo str_repeat('-', 58) . "\n";
+if ($sshPdu !== null) {
+    echo str_repeat('-', 69) . "\n";
+} else {
+    echo str_repeat('-', 58) . "\n";
+}
 echo "\nNative:  PHP's snmpget()/snmp3_get() - portable, requires ext-snmp\n";
 echo "Binary:  snmpget binary - fast batch ops, requires net-snmp package\n";
 echo "FreeDSx: FreeDSx library - fast batch ops, pure PHP (no extensions)\n";
+if ($sshPdu !== null) {
+    echo "SSH:     ext-ssh2 - limited metrics, requires ext-ssh2 PHP extension\n";
+}

@@ -8,12 +8,12 @@ use Sunfox\ApcPdu\ApcPdu;
 use Sunfox\ApcPdu\ApcPduFactory;
 
 /**
- * Integration tests for FreeDSx SNMP client.
+ * Integration tests for Native SNMP client.
  *
  * @group integration
- * @group freedsx
+ * @group native
  */
-class ApcPduFreeDsxIntegrationTest extends AbstractSnmpIntegrationTest
+class ApcPduNativeIntegrationTest extends AbstractSnmpIntegrationTest
 {
     protected function createPdu(
         string $host,
@@ -21,6 +21,6 @@ class ApcPduFreeDsxIntegrationTest extends AbstractSnmpIntegrationTest
         string $authPass,
         string $privPass,
     ): ApcPdu {
-        return ApcPduFactory::snmpV3FreeDsx($host, $user, $authPass, $privPass);
+        return ApcPduFactory::snmpV3Native($host, $user, $authPass, $privPass);
     }
 }

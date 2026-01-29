@@ -6,7 +6,6 @@ namespace Sunfox\ApcPdu\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\ApcPdu;
-use Sunfox\ApcPdu\ApcPduFactory;
 use Sunfox\ApcPdu\DeviceMetric;
 use Sunfox\ApcPdu\Dto\DeviceStatus;
 use Sunfox\ApcPdu\Dto\OutletStatus;
@@ -14,16 +13,20 @@ use Sunfox\ApcPdu\Dto\PduInfo;
 use Sunfox\ApcPdu\OutletMetric;
 
 /**
- * Integration tests that require a real APC PDU device.
- *
- * Set environment variables PDU_HOST, PDU_SNMP_USER, PDU_SNMP_AUTH_PASS, PDU_SNMP_PRIV_PASS
- * to run these tests.
+ * Base class for SNMP integration tests.
  *
  * @group integration
  */
-class ApcPduIntegrationTest extends TestCase
+abstract class AbstractSnmpIntegrationTest extends TestCase
 {
-    private ?ApcPdu $pdu = null;
+    protected ?ApcPdu $pdu = null;
+
+    abstract protected function createPdu(
+        string $host,
+        string $user,
+        string $authPass,
+        string $privPass,
+    ): ApcPdu;
 
     protected function setUp(): void
     {
@@ -39,7 +42,7 @@ class ApcPduIntegrationTest extends TestCase
             );
         }
 
-        $this->pdu = ApcPduFactory::snmpV3($host, $user, $authPass, $privPass ?: '');
+        $this->pdu = $this->createPdu($host, $user, $authPass, $privPass ?: '');
     }
 
     public function testConnectionWorks(): void

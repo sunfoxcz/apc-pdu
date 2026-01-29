@@ -1,14 +1,15 @@
-# APC PDU SNMP Library
+# APC PDU Library
 
-PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3) with Network Port Sharing support.
+PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3) or SSH with Network Port Sharing support.
 
 ## Requirements
 
 - PHP 8.2+
-- One of the following SNMP backends:
+- One of the following backends:
   - `ext-snmp` - PHP SNMP extension (for Native client)
   - `net-snmp` - System package (for Binary client)
   - `freedsx/snmp` - Composer package (for FreeDSx client)
+  - `ext-ssh2` - PHP SSH2 extension (for SSH client)
 
 ## Installation
 
@@ -39,15 +40,16 @@ $pdu = ApcPduFactory::snmpV3(
 );
 ```
 
-### SNMP Client Implementations
+### Client Implementations
 
-The library provides three SNMP client implementations:
+The library provides multiple client implementations:
 
 | Method | Description | Dependencies |
 |--------|-------------|--------------|
 | `snmpV1Native()` / `snmpV3Native()` | Uses PHP's native SNMP functions | `ext-snmp` |
 | `snmpV1Binary()` / `snmpV3Binary()` | Uses the `snmpget` binary via shell | `net-snmp` package |
 | `snmpV1FreeDsx()` / `snmpV3FreeDsx()` | Uses the FreeDSx SNMP library | `freedsx/snmp` composer package |
+| `ssh()` | Uses SSH/CLI interface | `ext-ssh2` |
 
 The default `snmpV1()` / `snmpV3()` methods use the **native** implementation for portability.
 
@@ -60,27 +62,33 @@ $pdu = ApcPduFactory::snmpV3Binary($host, $user, $authPass, $privPass);
 
 // FreeDSx - pure PHP, no extensions required (composer require freedsx/snmp)
 $pdu = ApcPduFactory::snmpV3FreeDsx($host, $user, $authPass, $privPass);
+
+// SSH - uses CLI commands over SSH (requires ext-ssh2)
+$pdu = ApcPduFactory::ssh($host, $sshUser, $sshPass);
 ```
 
 ### Performance Comparison
 
 Benchmark results (SNMPv3, AP8653 PDU):
 
-| Operation | Native | Binary | FreeDSx |
-|-----------|--------|--------|---------|
-| Single device metric | 128 ms | 69 ms | 73 ms |
-| Device metrics (batch) | 1.26 s | 200 ms | 215 ms |
-| Single outlet metric | 62 ms | 65 ms | 233 ms |
-| Outlet metrics (batch) | 1.09 s | 213 ms | 229 ms |
-| All 24 outlets | 25.82 s | 7.07 s | 7.45 s |
-| Full PDU status | 54.74 s | 16.64 s | 13.72 s |
+| Operation | Native | Binary | FreeDSx | SSH |
+|-----------|--------|--------|---------|-----|
+| Single device metric | 128 ms | 69 ms | 73 ms | 905 ms |
+| Device metrics (batch) | 1.26 s | 200 ms | 215 ms | N/A* |
+| Single outlet metric | 62 ms | 65 ms | 233 ms | 904 ms |
+| Outlet metrics (batch) | 1.09 s | 213 ms | 229 ms | N/A* |
+| All 24 outlets | 25.82 s | 7.07 s | 7.45 s | N/A* |
+| Full PDU status | 54.74 s | 16.64 s | 13.72 s | N/A* |
+
+*SSH uses an interactive shell which adds latency. It supports only a limited set of metrics (Power, Energy, ApparentPower, PowerFactor, Current, Name) and cannot retrieve full device/outlet status.
 
 **Recommendations:**
 - **Native**: Good for simple single-metric queries, requires `ext-snmp`
 - **Binary**: Best batch performance, requires `net-snmp` system package
 - **FreeDSx**: Best for full status dumps, pure PHP with no extension dependencies
+- **SSH**: Alternative when SNMP is unavailable, limited metrics support
 
-Run `bin/benchmark` to compare performance on your system.
+Run `bin/benchmark` to compare performance on your system. Use `--ssh` flag to include SSH in the comparison.
 
 ### Device-Level Metrics
 

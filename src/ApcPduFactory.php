@@ -54,6 +54,29 @@ final class ApcPduFactory
     }
 
     /**
+     * Create an SNMPv1 connection using the FreeDSx SNMP library.
+     *
+     * This provides efficient batch operations and does not require
+     * PHP's native SNMP extension or the net-snmp package.
+     * Requires: composer require freedsx/snmp
+     *
+     * @throws SnmpFreeDsxNotFoundException
+     */
+    public static function snmpV1FreeDsx(
+        string $host,
+        string $community = 'public',
+        int $outletsPerPdu = 24,
+        int $timeout = 1000000,
+        int $retries = 3,
+    ): ApcPdu {
+        $client = new SnmpFreeDsxClient($host, $timeout, $retries);
+
+        return new ApcPdu(
+            new SnmpV1Provider($client, $community, $outletsPerPdu),
+        );
+    }
+
+    /**
      * Create SNMPv1 connection (alias for snmpV1Native).
      */
     public static function snmpV1(
@@ -131,56 +154,6 @@ final class ApcPduFactory
     }
 
     /**
-     * Create an SNMPv3 connection (alias for snmpV3Native).
-     */
-    public static function snmpV3(
-        string $host,
-        string $username,
-        string $authPassphrase,
-        string $privPassphrase = '',
-        string $authProtocol = 'SHA',
-        string $privProtocol = 'AES',
-        int $outletsPerPdu = 24,
-        int $timeout = 1000000,
-        int $retries = 3,
-    ): ApcPdu {
-        return self::snmpV3Native(
-            $host,
-            $username,
-            $authPassphrase,
-            $privPassphrase,
-            $authProtocol,
-            $privProtocol,
-            $outletsPerPdu,
-            $timeout,
-            $retries,
-        );
-    }
-
-    /**
-     * Create an SNMPv1 connection using the FreeDSx SNMP library.
-     *
-     * This provides efficient batch operations and does not require
-     * PHP's native SNMP extension or the net-snmp package.
-     * Requires: composer require freedsx/snmp
-     *
-     * @throws SnmpFreeDsxNotFoundException
-     */
-    public static function snmpV1FreeDsx(
-        string $host,
-        string $community = 'public',
-        int $outletsPerPdu = 24,
-        int $timeout = 1000000,
-        int $retries = 3,
-    ): ApcPdu {
-        $client = new SnmpFreeDsxClient($host, $timeout, $retries);
-
-        return new ApcPdu(
-            new SnmpV1Provider($client, $community, $outletsPerPdu),
-        );
-    }
-
-    /**
      * Create an SNMPv3 connection using the FreeDSx SNMP library.
      *
      * This provides efficient batch operations and does not require
@@ -212,6 +185,33 @@ final class ApcPduFactory
                 $privProtocol,
                 $outletsPerPdu,
             ),
+        );
+    }
+
+    /**
+     * Create an SNMPv3 connection (alias for snmpV3Native).
+     */
+    public static function snmpV3(
+        string $host,
+        string $username,
+        string $authPassphrase,
+        string $privPassphrase = '',
+        string $authProtocol = 'SHA',
+        string $privProtocol = 'AES',
+        int $outletsPerPdu = 24,
+        int $timeout = 1000000,
+        int $retries = 3,
+    ): ApcPdu {
+        return self::snmpV3Native(
+            $host,
+            $username,
+            $authPassphrase,
+            $privPassphrase,
+            $authProtocol,
+            $privProtocol,
+            $outletsPerPdu,
+            $timeout,
+            $retries,
         );
     }
 

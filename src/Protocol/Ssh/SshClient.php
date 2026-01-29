@@ -9,7 +9,7 @@ use Sunfox\ApcPdu\PduException;
 final class SshClient
 {
     /** @var resource|null */
-    private mixed $connection = null;
+    private mixed $shell = null;
 
     public function __construct(
         private string $host,
@@ -23,18 +23,15 @@ final class SshClient
     {
         $this->connect();
 
-        $stream = @ssh2_exec($this->connection, $command);
-        if ($stream === false) {
-            throw new PduException("Failed to execute SSH command: {$command}");
-        }
+        // Clear any pending output
+        $this->readOutput(100);
 
-        stream_set_blocking($stream, true);
-        $output = stream_get_contents($stream);
-        fclose($stream);
+        // Send command
+        fwrite($this->shell, $command . "\n");
 
-        if ($output === false) {
-            throw new PduException('Failed to read SSH command output');
-        }
+        // Wait for response and read output
+        usleep(300000); // 300ms delay for command execution
+        $output = $this->readOutput(500);
 
         return $output;
     }
@@ -44,9 +41,27 @@ final class SshClient
         return $this->host;
     }
 
+    private function readOutput(int $timeoutMs): string
+    {
+        $output = '';
+        $startTime = microtime(true);
+        $timeout = $timeoutMs / 1000;
+
+        while ((microtime(true) - $startTime) < $timeout) {
+            $buf = @fread($this->shell, 4096);
+            if ($buf !== false && $buf !== '') {
+                $output .= $buf;
+            } else {
+                usleep(10000); // 10ms sleep between reads
+            }
+        }
+
+        return $output;
+    }
+
     private function connect(): void
     {
-        if ($this->connection !== null) {
+        if ($this->shell !== null) {
             return;
         }
 
@@ -59,6 +74,17 @@ final class SshClient
             throw new PduException("SSH authentication failed for user: {$this->username}");
         }
 
-        $this->connection = $connection;
+        // Open interactive shell
+        $shell = @ssh2_shell($connection, 'vt102', [], 80, 40, SSH2_TERM_UNIT_CHARS);
+        if ($shell === false) {
+            throw new PduException('Failed to open SSH shell');
+        }
+
+        stream_set_blocking($shell, false);
+        $this->shell = $shell;
+
+        // Wait for initial prompt and clear it
+        usleep(1000000); // 1 second for initial menu
+        $this->readOutput(500);
     }
 }

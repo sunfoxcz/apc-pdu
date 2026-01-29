@@ -19,12 +19,20 @@ class ApcCliParserTest extends TestCase
 
     public function testParseDevicePower(): void
     {
-        $this->assertSame(1234.0, $this->parser->parseDevicePower('Power: 1234 W'));
+        $output = "devReading power\nE000: Success\n0.5 kW\n\napc>";
+        $this->assertSame(500.0, $this->parser->parseDevicePower($output));
     }
 
     public function testParseDevicePowerWithDecimal(): void
     {
-        $this->assertSame(1234.5, $this->parser->parseDevicePower('Power: 1234.5 W'));
+        $output = "devReading power\nE000: Success\n1.234 kW\n\napc>";
+        $this->assertSame(1234.0, $this->parser->parseDevicePower($output));
+    }
+
+    public function testParseDevicePowerInWatts(): void
+    {
+        $output = "devReading power\nE000: Success\n1234 W\n\napc>";
+        $this->assertSame(1234.0, $this->parser->parseDevicePower($output));
     }
 
     public function testParseDevicePowerThrowsOnInvalidInput(): void
@@ -37,7 +45,8 @@ class ApcCliParserTest extends TestCase
 
     public function testParseDeviceEnergy(): void
     {
-        $this->assertSame(123.45, $this->parser->parseDeviceEnergy('Energy: 123.45 kWh'));
+        $output = "devReading energy\nE000: Success\n123.45 kWh\n\napc>";
+        $this->assertSame(123.45, $this->parser->parseDeviceEnergy($output));
     }
 
     public function testParseDeviceEnergyThrowsOnInvalidInput(): void
@@ -48,14 +57,50 @@ class ApcCliParserTest extends TestCase
         $this->parser->parseDeviceEnergy('Invalid output');
     }
 
+    public function testParseApparentPower(): void
+    {
+        $output = "devReading appower\nE000: Success\n0.6 kVA\n\napc>";
+        $this->assertSame(600.0, $this->parser->parseApparentPower($output));
+    }
+
+    public function testParseApparentPowerInVa(): void
+    {
+        $output = "devReading appower\nE000: Success\n600 VA\n\napc>";
+        $this->assertSame(600.0, $this->parser->parseApparentPower($output));
+    }
+
+    public function testParseApparentPowerThrowsOnInvalidInput(): void
+    {
+        $this->expectException(PduException::class);
+        $this->expectExceptionMessage('Could not parse apparent power');
+
+        $this->parser->parseApparentPower('Invalid output');
+    }
+
+    public function testParsePowerFactor(): void
+    {
+        $output = "devReading pf\nE000: Success\n0.85\n\napc>";
+        $this->assertSame(0.85, $this->parser->parsePowerFactor($output));
+    }
+
+    public function testParsePowerFactorThrowsOnInvalidInput(): void
+    {
+        $this->expectException(PduException::class);
+        $this->expectExceptionMessage('Could not parse power factor');
+
+        $this->parser->parsePowerFactor('Invalid output');
+    }
+
     public function testParseOutletName(): void
     {
-        $this->assertSame('Server 1', $this->parser->parseOutletName("Name: Server 1\n"));
+        $output = "olName 1\n 1: Server 1\nE000: Success\n\napc>";
+        $this->assertSame('Server 1', $this->parser->parseOutletName($output));
     }
 
     public function testParseOutletNameTrimsWhitespace(): void
     {
-        $this->assertSame('Test Outlet', $this->parser->parseOutletName('Name:   Test Outlet   '));
+        $output = "olName 1\n 1:   Test Outlet   \nE000: Success\n\napc>";
+        $this->assertSame('Test Outlet', $this->parser->parseOutletName($output));
     }
 
     public function testParseOutletNameThrowsOnInvalidInput(): void
@@ -68,12 +113,14 @@ class ApcCliParserTest extends TestCase
 
     public function testParseOutletCurrent(): void
     {
-        $this->assertSame(1.5, $this->parser->parseOutletCurrent('Current: 1.5 A'));
+        $output = "olReading 1 current\n 1: sm51: 1.5 A\nE000: Success\n\napc>";
+        $this->assertSame(1.5, $this->parser->parseOutletCurrent($output));
     }
 
     public function testParseOutletCurrentInteger(): void
     {
-        $this->assertSame(2.0, $this->parser->parseOutletCurrent('Current: 2 A'));
+        $output = "olReading 1 current\n 1: sm51: 2 A\nE000: Success\n\napc>";
+        $this->assertSame(2.0, $this->parser->parseOutletCurrent($output));
     }
 
     public function testParseOutletCurrentThrowsOnInvalidInput(): void
@@ -86,12 +133,14 @@ class ApcCliParserTest extends TestCase
 
     public function testParseOutletPower(): void
     {
-        $this->assertSame(150.0, $this->parser->parseOutletPower('Power: 150 W'));
+        $output = "olReading 1 power\n 1: sm51: 150 W\nE000: Success\n\napc>";
+        $this->assertSame(150.0, $this->parser->parseOutletPower($output));
     }
 
     public function testParseOutletPowerWithDecimal(): void
     {
-        $this->assertSame(150.5, $this->parser->parseOutletPower('Power: 150.5 W'));
+        $output = "olReading 1 power\n 1: sm51: 150.5 W\nE000: Success\n\napc>";
+        $this->assertSame(150.5, $this->parser->parseOutletPower($output));
     }
 
     public function testParseOutletPowerThrowsOnInvalidInput(): void
@@ -104,7 +153,8 @@ class ApcCliParserTest extends TestCase
 
     public function testParseOutletEnergy(): void
     {
-        $this->assertSame(50.5, $this->parser->parseOutletEnergy('Energy: 50.5 kWh'));
+        $output = "olReading 1 energy\n 1: sm51: 50.5 kWh\nE000: Success\n\napc>";
+        $this->assertSame(50.5, $this->parser->parseOutletEnergy($output));
     }
 
     public function testParseOutletEnergyThrowsOnInvalidInput(): void

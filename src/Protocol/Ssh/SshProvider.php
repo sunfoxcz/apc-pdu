@@ -29,19 +29,24 @@ final class SshProvider implements ProtocolProviderInterface
     public function getDeviceMetric(DeviceMetric $metric, int $pduIndex): float|int|string
     {
         // APC CLI commands for device metrics
-        // Note: Actual CLI commands may vary by firmware version
+        // Format: devReading [id#:]<power | energy | appower | pf>
+        $prefix = $pduIndex > 1 ? "{$pduIndex}:" : '';
+
         $command = match ($metric) {
-            DeviceMetric::Power => "phReading {$pduIndex} power",
-            DeviceMetric::PeakPower => "phReading {$pduIndex} peakPower",
-            DeviceMetric::Energy => "phReading {$pduIndex} energy",
+            DeviceMetric::Power => "devReading {$prefix}power",
+            DeviceMetric::Energy => "devReading {$prefix}energy",
+            DeviceMetric::ApparentPower => "devReading {$prefix}appower",
+            DeviceMetric::PowerFactor => "devReading {$prefix}pf",
             default => throw new PduException("Device metric {$metric->value} not available via SSH"),
         };
 
         $output = $this->client->execute($command);
 
         return match ($metric) {
-            DeviceMetric::Power, DeviceMetric::PeakPower => $this->parser->parseDevicePower($output),
+            DeviceMetric::Power => $this->parser->parseDevicePower($output),
             DeviceMetric::Energy => $this->parser->parseDeviceEnergy($output),
+            DeviceMetric::ApparentPower => $this->parser->parseApparentPower($output),
+            DeviceMetric::PowerFactor => $this->parser->parsePowerFactor($output),
             default => throw new PduException("Device metric {$metric->value} not available via SSH"),
         };
     }
@@ -51,12 +56,13 @@ final class SshProvider implements ProtocolProviderInterface
      */
     public function getDeviceMetricsBatch(int $pduIndex): array
     {
-        // SSH doesn't support batching, but only a few metrics are available anyway
+        // SSH doesn't support batching, get metrics one by one
         $results = [];
         $availableMetrics = [
             DeviceMetric::Power,
-            DeviceMetric::PeakPower,
             DeviceMetric::Energy,
+            DeviceMetric::ApparentPower,
+            DeviceMetric::PowerFactor,
         ];
 
         foreach ($availableMetrics as $metric) {
@@ -76,11 +82,12 @@ final class SshProvider implements ProtocolProviderInterface
         $globalOutlet = (($pduIndex - 1) * $this->outletsPerPdu) + $outletNumber;
 
         // APC CLI commands for outlet metrics
+        // Format: olReading <outlet#> <current | power | energy>
+        //         olName <outlet#>
         $command = match (true) {
             $metric === OutletMetric::Name => "olName {$globalOutlet}",
             $metric === OutletMetric::Current => "olReading {$globalOutlet} current",
             $metric === OutletMetric::Power => "olReading {$globalOutlet} power",
-            $metric === OutletMetric::PeakPower => "olReading {$globalOutlet} peakPower",
             $metric === OutletMetric::Energy => "olReading {$globalOutlet} energy",
             $metric === OutletMetric::Index => throw new PduException('Index metric not available via SSH'),
             default => throw new PduException('Outlet metric not available via SSH'),
@@ -91,8 +98,7 @@ final class SshProvider implements ProtocolProviderInterface
         return match (true) {
             $metric === OutletMetric::Name => $this->parser->parseOutletName($output),
             $metric === OutletMetric::Current => $this->parser->parseOutletCurrent($output),
-            $metric === OutletMetric::Power,
-            $metric === OutletMetric::PeakPower => $this->parser->parseOutletPower($output),
+            $metric === OutletMetric::Power => $this->parser->parseOutletPower($output),
             $metric === OutletMetric::Energy => $this->parser->parseOutletEnergy($output),
             default => throw new PduException('Outlet metric not available via SSH'),
         };
@@ -103,13 +109,12 @@ final class SshProvider implements ProtocolProviderInterface
      */
     public function getOutletMetricsBatch(int $pduIndex, int $outletNumber): array
     {
-        // SSH doesn't support batching, but only few metrics are available anyway
+        // SSH doesn't support batching, get metrics one by one
         $results = [];
         $availableMetrics = [
             OutletMetric::Name,
             OutletMetric::Current,
             OutletMetric::Power,
-            OutletMetric::PeakPower,
             OutletMetric::Energy,
         ];
 
