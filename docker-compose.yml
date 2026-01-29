@@ -1,0 +1,53 @@
+services:
+  php:
+    build: .
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    entrypoint: ["/bin/sh", "-c", "composer install --quiet && exec \"$$@\"", "--"]
+    command: vendor/bin/phpunit
+
+  # Run only unit tests
+  unit:
+    build: .
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - .:/app
+    entrypoint: ["/bin/sh", "-c", "composer install --quiet && exec \"$$@\"", "--"]
+    command: vendor/bin/phpunit --testsuite Unit
+
+  # Run only integration tests (requires .env with PDU credentials)
+  integration:
+    build: .
+    user: "${UID:-1000}:${GID:-1000}"
+    network_mode: host
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    entrypoint: ["/bin/sh", "-c", "composer install --quiet && exec \"$$@\"", "--"]
+    command: vendor/bin/phpunit --testsuite Integration
+
+  # Interactive shell for debugging
+  shell:
+    build: .
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    entrypoint: ["/bin/sh", "-c", "composer install --quiet && exec \"$$@\"", "--"]
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+
+  # Run PHPStan analysis
+  phpstan:
+    build: .
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - .:/app
+    entrypoint: ["/bin/sh", "-c", "composer install --quiet && exec \"$$@\"", "--"]
+    command: vendor/bin/phpstan analyse src tests --level=5
