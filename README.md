@@ -4,8 +4,11 @@ PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3) wit
 
 ## Requirements
 
-- PHP 8.1+
-- ext-snmp
+- PHP 8.2+
+- One of the following SNMP backends:
+  - `ext-snmp` - PHP SNMP extension (for Native client)
+  - `net-snmp` - System package (for Binary client)
+  - `freedsx/snmp` - Composer package (for FreeDSx client)
 
 ## Installation
 
@@ -36,29 +39,46 @@ $pdu = ApcPduFactory::snmpV3(
 );
 ```
 
-### Native vs Binary Client
+### SNMP Client Implementations
 
-The library provides two SNMP client implementations:
+The library provides three SNMP client implementations:
 
-| Method | Description | Batch Performance |
-|--------|-------------|-------------------|
-| `snmpV1Native()` / `snmpV3Native()` | Uses PHP's native `snmpget()`/`snmp3_get()` functions | Loops over OIDs individually |
-| `snmpV1Binary()` / `snmpV3Binary()` | Uses the `snmpget` binary via shell | Fetches all OIDs in single command |
+| Method | Description | Dependencies |
+|--------|-------------|--------------|
+| `snmpV1Native()` / `snmpV3Native()` | Uses PHP's native SNMP functions | `ext-snmp` |
+| `snmpV1Binary()` / `snmpV3Binary()` | Uses the `snmpget` binary via shell | `net-snmp` package |
+| `snmpV1FreeDsx()` / `snmpV3FreeDsx()` | Uses the FreeDSx SNMP library | `freedsx/snmp` composer package |
 
 The default `snmpV1()` / `snmpV3()` methods use the **native** implementation for portability.
 
-**When to use binary client:**
-- Fetching many metrics at once (e.g., `getFullStatus()`, `getAllOutlets()`)
-- Performance is critical
-- The `snmpget` binary is available (`apt install snmp` / `yum install net-snmp-utils`)
-
 ```php
-// Native (default) - portable, no external dependencies
+// Native (default) - requires ext-snmp PHP extension
 $pdu = ApcPduFactory::snmpV3Native($host, $user, $authPass, $privPass);
 
-// Binary - faster batch operations, requires net-snmp package
+// Binary - requires net-snmp package (apt install snmp)
 $pdu = ApcPduFactory::snmpV3Binary($host, $user, $authPass, $privPass);
+
+// FreeDSx - pure PHP, no extensions required (composer require freedsx/snmp)
+$pdu = ApcPduFactory::snmpV3FreeDsx($host, $user, $authPass, $privPass);
 ```
+
+### Performance Comparison
+
+Benchmark results (SNMPv3, AP8653 PDU):
+
+| Operation | Native | Binary | FreeDSx |
+|-----------|--------|--------|---------|
+| Single device metric | 128 ms | 69 ms | 73 ms |
+| Device metrics (batch) | 1.26 s | 200 ms | 215 ms |
+| Single outlet metric | 62 ms | 65 ms | 233 ms |
+| Outlet metrics (batch) | 1.09 s | 213 ms | 229 ms |
+| All 24 outlets | 25.82 s | 7.07 s | 7.45 s |
+| Full PDU status | 54.74 s | 16.64 s | 13.72 s |
+
+**Recommendations:**
+- **Native**: Good for simple single-metric queries, requires `ext-snmp`
+- **Binary**: Best batch performance, requires `net-snmp` system package
+- **FreeDSx**: Best for full status dumps, pure PHP with no extension dependencies
 
 Run `bin/benchmark` to compare performance on your system.
 

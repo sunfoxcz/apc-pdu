@@ -30,7 +30,7 @@ if (isset($options['help'])) {
     echo <<<HELP
 APC PDU SNMP Benchmark
 
-Compares performance of native PHP SNMP functions vs snmpget binary.
+Compares performance of Native (ext-snmp), Binary (net-snmp), and FreeDSx clients.
 
 Usage:
   SNMPv3: bin/benchmark [--host=<ip>] [--user=<user>] [--auth=<pass>] [--priv=<pass>]
@@ -71,10 +71,11 @@ if ($useV1) {
     echo "APC PDU SNMP Benchmark (SNMPv1)\n";
     echo "Host: {$host}\n";
     echo "Community: {$community}\n";
-    echo str_repeat('=', 60) . "\n\n";
+    echo str_repeat('=', 70) . "\n\n";
 
     $nativePdu = ApcPduFactory::snmpV1Native($host, $community);
     $binaryPdu = ApcPduFactory::snmpV1Binary($host, $community);
+    $freedsxPdu = ApcPduFactory::snmpV1FreeDsx($host, $community);
 } else {
     $user = $options['user'] ?? getenv('PDU_SNMP_USER') ?: null;
     $authPass = $options['auth'] ?? getenv('PDU_SNMP_AUTH_PASS') ?: null;
@@ -89,10 +90,11 @@ if ($useV1) {
     echo "APC PDU SNMP Benchmark (SNMPv3)\n";
     echo "Host: {$host}\n";
     echo "User: {$user}\n";
-    echo str_repeat('=', 60) . "\n\n";
+    echo str_repeat('=', 70) . "\n\n";
 
     $nativePdu = ApcPduFactory::snmpV3Native($host, $user, $authPass, $privPass);
     $binaryPdu = ApcPduFactory::snmpV3Binary($host, $user, $authPass, $privPass);
+    $freedsxPdu = ApcPduFactory::snmpV3FreeDsx($host, $user, $authPass, $privPass);
 }
 
 /**
@@ -127,54 +129,61 @@ function formatTime(float $seconds): string
 /**
  * Print benchmark result row.
  */
-function printResult(string $label, float $nativeTime, float $binaryTime): void
+function printResult(string $label, float $nativeTime, float $binaryTime, float $freedsxTime): void
 {
-    $speedup = $nativeTime / $binaryTime;
+    $fastestTime = min($nativeTime, $binaryTime, $freedsxTime);
     printf(
-        "%-30s %12s %12s %10.1fx\n",
+        "%-25s %10s %10s %10s\n",
         $label,
         formatTime($nativeTime),
         formatTime($binaryTime),
-        $speedup,
+        formatTime($freedsxTime),
     );
 }
 
 // Run benchmarks
 echo "Running benchmarks (5 iterations each)...\n\n";
 
-printf("%-30s %12s %12s %10s\n", 'Operation', 'Native', 'Binary', 'Speedup');
-echo str_repeat('-', 66) . "\n";
+printf("%-25s %10s %10s %10s\n", 'Operation', 'Native', 'Binary', 'FreeDSx');
+echo str_repeat('-', 58) . "\n";
 
 // Single device metric
 $nativeTime = benchmark(fn() => $nativePdu->getDevice(DeviceMetric::Power));
 $binaryTime = benchmark(fn() => $binaryPdu->getDevice(DeviceMetric::Power));
-printResult('Single device metric', $nativeTime, $binaryTime);
+$freedsxTime = benchmark(fn() => $freedsxPdu->getDevice(DeviceMetric::Power));
+printResult('Single device metric', $nativeTime, $binaryTime, $freedsxTime);
 
 // All device metrics (batch)
 $nativeTime = benchmark(fn() => $nativePdu->getDeviceStatus());
 $binaryTime = benchmark(fn() => $binaryPdu->getDeviceStatus());
-printResult('All device metrics (batch)', $nativeTime, $binaryTime);
+$freedsxTime = benchmark(fn() => $freedsxPdu->getDeviceStatus());
+printResult('Device metrics (batch)', $nativeTime, $binaryTime, $freedsxTime);
 
 // Single outlet metric
 $nativeTime = benchmark(fn() => $nativePdu->getOutlet(1, 1, OutletMetric::Power));
 $binaryTime = benchmark(fn() => $binaryPdu->getOutlet(1, 1, OutletMetric::Power));
-printResult('Single outlet metric', $nativeTime, $binaryTime);
+$freedsxTime = benchmark(fn() => $freedsxPdu->getOutlet(1, 1, OutletMetric::Power));
+printResult('Single outlet metric', $nativeTime, $binaryTime, $freedsxTime);
 
 // All outlet metrics for one outlet (batch)
 $nativeTime = benchmark(fn() => $nativePdu->getOutletStatus(1, 1));
 $binaryTime = benchmark(fn() => $binaryPdu->getOutletStatus(1, 1));
-printResult('All outlet metrics (batch)', $nativeTime, $binaryTime);
+$freedsxTime = benchmark(fn() => $freedsxPdu->getOutletStatus(1, 1));
+printResult('Outlet metrics (batch)', $nativeTime, $binaryTime, $freedsxTime);
 
 // All outlets (24 batch requests)
 $nativeTime = benchmark(fn() => $nativePdu->getAllOutlets(1), 3);
 $binaryTime = benchmark(fn() => $binaryPdu->getAllOutlets(1), 3);
-printResult('All 24 outlets', $nativeTime, $binaryTime);
+$freedsxTime = benchmark(fn() => $freedsxPdu->getAllOutlets(1), 3);
+printResult('All 24 outlets', $nativeTime, $binaryTime, $freedsxTime);
 
 // Full status
 $nativeTime = benchmark(fn() => $nativePdu->getFullStatus(), 3);
 $binaryTime = benchmark(fn() => $binaryPdu->getFullStatus(), 3);
-printResult('Full PDU status', $nativeTime, $binaryTime);
+$freedsxTime = benchmark(fn() => $freedsxPdu->getFullStatus(), 3);
+printResult('Full PDU status', $nativeTime, $binaryTime, $freedsxTime);
 
-echo str_repeat('-', 66) . "\n";
-echo "\nNative:  Uses PHP's snmpget()/snmp3_get() - portable, no dependencies\n";
-echo "Binary:  Uses snmpget binary - faster batch operations, requires net-snmp\n";
+echo str_repeat('-', 58) . "\n";
+echo "\nNative:  PHP's snmpget()/snmp3_get() - portable, requires ext-snmp\n";
+echo "Binary:  snmpget binary - fast batch ops, requires net-snmp package\n";
+echo "FreeDSx: FreeDSx library - fast batch ops, pure PHP (no extensions)\n";

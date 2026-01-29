@@ -22,13 +22,15 @@
         "php": ">=8.2"
     },
     "suggest": {
-        "ext-snmp": "Required for SNMP protocol support",
-        "ext-ssh2": "Required for SSH protocol support"
+        "ext-snmp": "Required for native SNMP protocol support",
+        "ext-ssh2": "Required for SSH protocol support",
+        "freedsx/snmp": "Required for FreeDSx SNMP client implementation"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",
         "phpstan/phpstan": "^1.10",
-        "squizlabs/php_codesniffer": "^3.7"
+        "squizlabs/php_codesniffer": "^3.7",
+        "freedsx/snmp": "^0.5"
     },
     "autoload": {
         "psr-4": {

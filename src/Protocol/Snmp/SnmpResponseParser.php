@@ -15,6 +15,12 @@ final class SnmpResponseParser
             return (float) $matches[1];
         }
 
+        // Handle raw numeric values (e.g., from FreeDSx client)
+        $value = trim($raw, " \t\n\r\0\x0B\"");
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
         throw new PduException("Could not parse SNMP value: {$raw}");
     }
 
@@ -38,9 +44,14 @@ final class SnmpResponseParser
 
     public function parseString(string $raw): string
     {
-        $value = preg_replace('/^STRING:\s*"?|"?\s*$/', '', $raw);
+        // Handle type prefix format (e.g., 'STRING: "value"')
+        if (str_starts_with($raw, 'STRING:')) {
+            $value = preg_replace('/^STRING:\s*"?|"?\s*$/', '', $raw);
+            return trim($value ?? '');
+        }
 
-        return trim($value ?? '');
+        // Handle raw string values (e.g., from FreeDSx client)
+        return trim($raw, " \t\n\r\0\x0B\"");
     }
 
     /**
