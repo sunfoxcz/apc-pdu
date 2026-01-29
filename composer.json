@@ -1,5 +1,5 @@
 {
-    "name": "sunfox/apc-pdu",
+    "name": "sunfoxcz/apc-pdu",
     "description": "PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3) with Network Port Sharing support",
     "type": "library",
     "license": "MIT",
@@ -14,8 +14,9 @@
     ],
     "authors": [
         {
-            "name": "Liquid",
-            "role": "Developer"
+            "name": "Tomas Jacik",
+            "email": "tomas.jacik@sunfox.cz",
+            "homepage": "https://sunfox.cz"
         }
     ],
     "require": {

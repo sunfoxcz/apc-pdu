@@ -1,6 +1,7 @@
 # APC PDU Library
 
-PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3) or SSH with Network Port Sharing support.
+PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3)
+or SSH with Network Port Sharing support.
 
 ## Requirements
 
@@ -14,7 +15,7 @@ PHP library for reading data from APC PDU AP8XXX series via SNMP (v1 and v3) or 
 ## Installation
 
 ```bash
-composer require sunfox/apc-pdu
+composer require sunfoxcz/apc-pdu
 ```
 
 ## Usage
@@ -54,7 +55,8 @@ The library provides multiple SNMP client implementations with automatic discove
 
 #### Automatic Client Discovery
 
-The `snmpV1()` and `snmpV3()` methods automatically detect and use the best available SNMP client in priority order:
+The `snmpV1()` and `snmpV3()` methods automatically detect and use the best
+available SNMP client in priority order:
 
 1. **Binary** - Most efficient batch operations (`net-snmp` package)
 2. **FreeDSx** - Efficient batch operations, pure PHP (`freedsx/snmp`)
@@ -94,7 +96,9 @@ Benchmark results (SNMPv3, AP8653 PDU):
 | All 24 outlets | 25.82 s | 7.07 s | 7.45 s | N/A* |
 | Full PDU status | 54.74 s | 16.64 s | 13.72 s | N/A* |
 
-*SSH uses an interactive shell which adds latency. It supports only a limited set of metrics (Power, Energy, ApparentPower, PowerFactor, Current, Name) and cannot retrieve full device/outlet status.
+*SSH uses an interactive shell which adds latency. It supports only a limited
+set of metrics (Power, Energy, ApparentPower, PowerFactor, Current, Name) and
+cannot retrieve full device/outlet status.
 
 **Recommendations:**
 - **Native**: Good for simple single-metric queries, requires `ext-snmp`
@@ -102,7 +106,8 @@ Benchmark results (SNMPv3, AP8653 PDU):
 - **FreeDSx**: Best for full status dumps, pure PHP with no extension dependencies
 - **SSH**: Alternative when SNMP is unavailable, limited metrics support
 
-Run `bin/benchmark` to compare performance on your system. Use `--ssh` flag to include SSH in the comparison.
+Run `bin/benchmark` to compare performance on your system. Use `--ssh` flag to
+include SSH in the comparison.
 
 ### Device-Level Metrics
 
@@ -171,7 +176,8 @@ $status = $pdu->getFullStatus();
 
 ### Network Port Sharing (NPS)
 
-When multiple PDUs are daisy-chained (up to 4 PDUs supported), specify the PDU index as the second parameter:
+When multiple PDUs are daisy-chained (up to 4 PDUs supported), specify the PDU index
+as the second parameter:
 
 ```php
 use Sunfox\ApcPdu\DeviceMetric;
