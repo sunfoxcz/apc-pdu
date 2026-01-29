@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Sunfox\ApcPdu\Protocol\Snmp;
 
+use FreeDSx\Snmp\Protocol\ClientProtocolHandler;
 use FreeDSx\Snmp\SnmpClient;
 use Sunfox\ApcPdu\PduException;
+use Sunfox\ApcPdu\Protocol\Snmp\SnmpFreeDsxClient\LenientSecurityModelModuleFactory;
 use Sunfox\ApcPdu\SnmpFreeDsxNotFoundException;
 use Throwable;
 
@@ -221,6 +223,16 @@ final class SnmpFreeDsxClient implements SnmpClientInterface
             $options['priv_mech'] = self::PRIV_PROTOCOL_MAP[$privProtocol] ?? 'aes128';
             $options['priv_pwd'] = $privPassphrase;
         }
+
+        // Use custom protocol handler with lenient security model
+        // Some APC PDUs don't set auth/priv flags in response headers properly
+        $options['_protocol_handler'] = new ClientProtocolHandler(
+            $options,
+            null,
+            null,
+            null,
+            new LenientSecurityModelModuleFactory(),
+        );
 
         return new SnmpClient($options);
     }
