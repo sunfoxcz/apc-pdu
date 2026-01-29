@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ruleset name="ApcPdu">
+    <description>PSR-12 coding standard for APC PDU library</description>
+
+    <!-- Use PSR-12 as the base standard -->
+    <rule ref="PSR12"/>
+
+    <!-- Paths to check -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Show progress and colors -->
+    <arg value="p"/>
+    <arg name="colors"/>
+
+    <!-- Show sniff codes in reports -->
+    <arg value="s"/>
+</ruleset>

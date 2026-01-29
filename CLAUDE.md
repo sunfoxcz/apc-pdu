@@ -21,6 +21,7 @@ Supports Network Port Sharing (up to 4 daisy-chained PDUs on one IP).
 │   └── APC_PDU_AP8653_OID_Reference.txt
 ├── composer.json
 ├── phpunit.xml
+├── phpcs.xml              # PSR-12 coding style configuration
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
@@ -120,6 +121,12 @@ docker compose run --rm integration
 
 # PHPStan analysis
 docker compose run --rm phpstan
+
+# PSR-12 coding style check
+docker compose run --rm phpcs
+
+# Auto-fix PSR-12 violations
+docker compose run --rm phpcbf
 ```
 
 ## PDU SNMP Configuration
@@ -147,3 +154,7 @@ snmpget -v3 -l authPriv -u monitor -a SHA -A "AuthPass" -x AES -X "PrivPass" \
 - After factory reset, SNMP community is empty
 - Energy is counted from last reset
 - PDU supports only SNMPv1 and SNMPv3 (not v2c)
+
+## Preferences
+
+- Do not add Co-Authored-By to commit messages

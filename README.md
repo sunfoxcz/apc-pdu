@@ -151,6 +151,12 @@ UID=$(id -u) GID=$(id -g) docker compose run --rm integration
 # Run PHPStan analysis
 UID=$(id -u) GID=$(id -g) docker compose run --rm phpstan
 
+# Run PSR-12 coding style check
+UID=$(id -u) GID=$(id -g) docker compose run --rm phpcs
+
+# Auto-fix PSR-12 violations
+UID=$(id -u) GID=$(id -g) docker compose run --rm phpcbf
+
 # Interactive shell
 UID=$(id -u) GID=$(id -g) docker compose run --rm shell
 ```

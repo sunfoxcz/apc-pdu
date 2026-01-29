@@ -65,7 +65,8 @@ final class SshProvider implements ProtocolProviderInterface
         return match (true) {
             $metric === OutletMetric::Name => $this->parser->parseOutletName($output),
             $metric === OutletMetric::Current => $this->parser->parseOutletCurrent($output),
-            $metric === OutletMetric::Power, $metric === OutletMetric::PeakPower => $this->parser->parseOutletPower($output),
+            $metric === OutletMetric::Power,
+            $metric === OutletMetric::PeakPower => $this->parser->parseOutletPower($output),
             $metric === OutletMetric::Energy => $this->parser->parseOutletEnergy($output),
             default => throw new PduException('Unknown outlet metric'),
         };
