@@ -159,6 +159,41 @@ echo $outlet->outletType;    // Outlet type (e.g., "IEC C13")
 $outlets = $pdu->getAllOutlets(1);
 ```
 
+### Outlet Control (Write Operations)
+
+```php
+use Sunfox\ApcPdu\OutletCommand;
+
+// Get an outlet object for control operations
+$outlet = $pdu->getOutlet(1, 5);  // PDU 1, Outlet 5
+
+// Power control
+$outlet->setState(OutletCommand::On);      // Turn on
+$outlet->setState(OutletCommand::Off);     // Turn off
+$outlet->setState(OutletCommand::Reboot);  // Reboot (off then on)
+
+// Configuration
+$outlet->setName('Web Server');
+$outlet->setExternalLink('https://example.com/server1');
+
+// Power thresholds (in Watts)
+$outlet->setLowLoadThreshold(10);
+$outlet->setNearOverloadThreshold(400);
+$outlet->setOverloadThreshold(500);
+```
+
+### Device Reset Operations
+
+```php
+// Reset device-level counters
+$pdu->resetDevicePeakPower(1);   // Reset peak power to current load
+$pdu->resetDeviceEnergy(1);      // Reset energy meter to zero
+
+// Reset all outlet counters
+$pdu->resetOutletsPeakPower(1);  // Reset all outlets peak power
+$pdu->resetOutletsEnergy(1);     // Reset all outlets energy meters
+```
+
 ### Complete Status
 
 ```php
@@ -253,6 +288,7 @@ if ($pdu->testConnection()) {
 ```php
 use Sunfox\ApcPdu\LoadStatus;
 use Sunfox\ApcPdu\PowerState;
+use Sunfox\ApcPdu\OutletCommand;
 
 // LoadStatus values
 LoadStatus::Normal;       // 1
@@ -263,6 +299,11 @@ LoadStatus::Overload;     // 4
 // PowerState values
 PowerState::Off; // 1
 PowerState::On;  // 2
+
+// OutletCommand values (for write operations)
+OutletCommand::On;     // 1
+OutletCommand::Off;    // 2
+OutletCommand::Reboot; // 3
 ```
 
 ## Tested Devices
