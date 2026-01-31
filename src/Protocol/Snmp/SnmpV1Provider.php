@@ -83,7 +83,7 @@ final class SnmpV1Provider implements WritableProtocolProviderInterface
     public function getOutletMetric(PduOutletMetric $metric, int $pduIndex, int $outletNumber): float|int|string
     {
         $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
-        $oid = $this->oidMap->outletOid($metric, $snmpIndex);
+        $oid = $this->oidMap->outletOid($metric, $snmpIndex, $pduIndex);
         $raw = $this->client->getV1($oid, $this->community);
 
         if ($metric->isString()) {
@@ -111,7 +111,7 @@ final class SnmpV1Provider implements WritableProtocolProviderInterface
         $metrics = [];
 
         foreach (OutletMetric::cases() as $metric) {
-            $oid = $this->oidMap->outletOid($metric, $snmpIndex);
+            $oid = $this->oidMap->outletOid($metric, $snmpIndex, $pduIndex);
             $oids[] = $oid;
             $metrics[$oid] = $metric;
         }

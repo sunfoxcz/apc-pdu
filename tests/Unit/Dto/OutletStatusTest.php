@@ -22,8 +22,9 @@ class OutletStatusTest extends TestCase
             powerW: 150.0,
             peakPowerW: 200.0,
             peakPowerTimestamp: '2024-01-15 10:30:00',
-            energyResetTimestamp: '2024-01-01 00:00:00',
+            peakPowerStartTime: '2024-01-01 00:00:00',
             energyKwh: 50.5,
+            energyStartTime: '2024-01-01 00:00:00',
             outletType: 'IEC C13',
             externalLink: 'https://example.com/server1',
         );
@@ -37,8 +38,9 @@ class OutletStatusTest extends TestCase
         $this->assertSame(150.0, $status->powerW);
         $this->assertSame(200.0, $status->peakPowerW);
         $this->assertSame('2024-01-15 10:30:00', $status->peakPowerTimestamp);
-        $this->assertSame('2024-01-01 00:00:00', $status->energyResetTimestamp);
+        $this->assertSame('2024-01-01 00:00:00', $status->peakPowerStartTime);
         $this->assertSame(50.5, $status->energyKwh);
+        $this->assertSame('2024-01-01 00:00:00', $status->energyStartTime);
         $this->assertSame('IEC C13', $status->outletType);
         $this->assertSame('https://example.com/server1', $status->externalLink);
     }

@@ -140,8 +140,9 @@ final class ApcPduOutlet
             powerW: (float) ($metrics[OutletMetric::Power->value] ?? 0.0),
             peakPowerW: (float) ($metrics[OutletMetric::PeakPower->value] ?? 0.0),
             peakPowerTimestamp: (string) ($metrics[OutletMetric::PeakPowerTimestamp->value] ?? ''),
-            energyResetTimestamp: (string) ($metrics[OutletMetric::EnergyResetTimestamp->value] ?? ''),
+            peakPowerStartTime: (string) ($metrics[OutletMetric::PeakPowerStartTime->value] ?? ''),
             energyKwh: (float) ($metrics[OutletMetric::Energy->value] ?? 0.0),
+            energyStartTime: (string) ($metrics[OutletMetric::EnergyStartTime->value] ?? ''),
             outletType: (string) ($metrics[OutletMetric::OutletType->value] ?? ''),
             externalLink: (string) ($metrics[OutletMetric::ExternalLink->value] ?? ''),
         );

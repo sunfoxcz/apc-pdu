@@ -60,9 +60,9 @@ class ApcAp8xxxOidMapTest extends TestCase
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.7.1', $oid);
     }
 
-    public function testDeviceOidEnergyResetTimestamp(): void
+    public function testDeviceOidPeakPowerStartTime(): void
     {
-        $oid = $this->oidMap->deviceOid(DeviceMetric::EnergyResetTimestamp, 1);
+        $oid = $this->oidMap->deviceOid(DeviceMetric::PeakPowerStartTime, 1);
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.8.1', $oid);
     }
 
@@ -72,9 +72,9 @@ class ApcAp8xxxOidMapTest extends TestCase
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.9.1', $oid);
     }
 
-    public function testDeviceOidEnergyStartTimestamp(): void
+    public function testDeviceOidEnergyStartTime(): void
     {
-        $oid = $this->oidMap->deviceOid(DeviceMetric::EnergyStartTimestamp, 1);
+        $oid = $this->oidMap->deviceOid(DeviceMetric::EnergyStartTime, 1);
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.10.1', $oid);
     }
 
@@ -100,12 +100,6 @@ class ApcAp8xxxOidMapTest extends TestCase
     {
         $oid = $this->oidMap->deviceOid(DeviceMetric::PhaseCount, 1);
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.14.1', $oid);
-    }
-
-    public function testDeviceOidPeakPowerResetTimestamp(): void
-    {
-        $oid = $this->oidMap->deviceOid(DeviceMetric::PeakPowerResetTimestamp, 1);
-        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.15.1', $oid);
     }
 
     public function testDeviceOidLowLoadThreshold(): void
@@ -187,9 +181,9 @@ class ApcAp8xxxOidMapTest extends TestCase
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.9.4.3.1.9.1', $oid);
     }
 
-    public function testOutletOidEnergyResetTimestamp(): void
+    public function testOutletOidPeakPowerStartTime(): void
     {
-        $oid = $this->oidMap->outletOid(OutletMetric::EnergyResetTimestamp, 1);
+        $oid = $this->oidMap->outletOid(OutletMetric::PeakPowerStartTime, 1);
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.9.4.3.1.10.1', $oid);
     }
 
@@ -197,6 +191,20 @@ class ApcAp8xxxOidMapTest extends TestCase
     {
         $oid = $this->oidMap->outletOid(OutletMetric::Energy, 24);
         $this->assertSame('.1.3.6.1.4.1.318.1.1.26.9.4.3.1.11.24', $oid);
+    }
+
+    public function testOutletOidEnergyStartTime(): void
+    {
+        // EnergyStartTime comes from device status table, not outlet metered status
+        $oid = $this->oidMap->outletOid(OutletMetric::EnergyStartTime, 1, 1);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.15.1', $oid);
+    }
+
+    public function testOutletOidEnergyStartTimePdu2(): void
+    {
+        // EnergyStartTime uses pduIndex, not snmpIndex
+        $oid = $this->oidMap->outletOid(OutletMetric::EnergyStartTime, 25, 2);
+        $this->assertSame('.1.3.6.1.4.1.318.1.1.26.4.3.1.15.2', $oid);
     }
 
     public function testOutletOidOutletType(): void

@@ -253,14 +253,13 @@ if ($pdu->testConnection()) {
 | Power | W | Current power consumption |
 | PeakPower | W | Peak power since last reset |
 | PeakPowerTimestamp | datetime | When peak power occurred |
-| EnergyResetTimestamp | datetime | When energy counter was reset |
+| PeakPowerStartTime | datetime | When peak power tracking started (last reset) |
 | Energy | kWh | Total energy since last reset |
-| EnergyStartTimestamp | datetime | When energy counting started |
+| EnergyStartTime | datetime | When energy tracking started (last reset) |
 | ApparentPower | VA | Apparent power |
 | PowerFactor | ratio | Power factor (0.0-1.0) |
 | OutletCount | - | Number of outlets |
 | PhaseCount | - | Number of phases |
-| PeakPowerResetTimestamp | datetime | When peak power was reset |
 | LowLoadThreshold | % | Low load warning threshold |
 | NearOverloadThreshold | % | Near overload warning threshold |
 | OverloadRestriction | - | Overload restriction setting |
@@ -278,10 +277,15 @@ if ($pdu->testConnection()) {
 | Power | W | Power consumption |
 | PeakPower | W | Peak power |
 | PeakPowerTimestamp | datetime | When peak power occurred |
-| EnergyResetTimestamp | datetime | When energy counter was reset |
+| PeakPowerStartTime | datetime | When peak power tracking started (last reset) |
 | Energy | kWh | Total energy |
+| EnergyStartTime | datetime | When energy tracking started (last reset)* |
 | OutletType | string | Outlet type (e.g., "IEC C13") |
 | ExternalLink | string | External link URL |
+
+*Note: `EnergyStartTime` for outlets is shared across all outlets on a PDU (comes from
+device-level `rPDU2DeviceStatusOutletsEnergyStartTime` OID). When you reset an outlet's
+energy, all outlets share the same start time.
 
 ### Enums
 

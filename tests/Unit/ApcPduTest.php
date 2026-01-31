@@ -99,14 +99,13 @@ class ApcPduTest extends TestCase
                 'power' => 1000.0,
                 'peak_power' => 1500.0,
                 'peak_power_timestamp' => '2024-01-15 10:30:00',
-                'energy_reset_timestamp' => '2024-01-01 00:00:00',
+                'peak_power_start_time' => '2024-01-01 00:00:00',
                 'energy' => 123.4,
-                'energy_start_timestamp' => '2024-01-01 00:00:00',
+                'energy_start_time' => '2024-01-01 00:00:00',
                 'apparent_power' => 1100.0,
                 'power_factor' => 0.91,
                 'outlet_count' => 24,
                 'phase_count' => 3,
-                'peak_power_reset_timestamp' => '2024-01-01 00:00:00',
                 'low_load_threshold' => 20,
                 'near_overload_threshold' => 80,
                 'overload_restriction' => 1,
@@ -123,14 +122,13 @@ class ApcPduTest extends TestCase
         $this->assertSame(1000.0, $status->powerW);
         $this->assertSame(1500.0, $status->peakPowerW);
         $this->assertSame('2024-01-15 10:30:00', $status->peakPowerTimestamp);
-        $this->assertSame('2024-01-01 00:00:00', $status->energyResetTimestamp);
+        $this->assertSame('2024-01-01 00:00:00', $status->peakPowerStartTime);
         $this->assertSame(123.4, $status->energyKwh);
-        $this->assertSame('2024-01-01 00:00:00', $status->energyStartTimestamp);
+        $this->assertSame('2024-01-01 00:00:00', $status->energyStartTime);
         $this->assertSame(1100.0, $status->apparentPowerVa);
         $this->assertSame(0.91, $status->powerFactor);
         $this->assertSame(24, $status->outletCount);
         $this->assertSame(3, $status->phaseCount);
-        $this->assertSame('2024-01-01 00:00:00', $status->peakPowerResetTimestamp);
         $this->assertSame(20, $status->lowLoadThreshold);
         $this->assertSame(80, $status->nearOverloadThreshold);
         $this->assertSame(1, $status->overloadRestriction);

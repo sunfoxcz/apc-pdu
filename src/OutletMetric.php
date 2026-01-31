@@ -18,8 +18,9 @@ enum OutletMetric: string implements PduOutletMetric
     case Power = 'power';
     case PeakPower = 'peak_power';
     case PeakPowerTimestamp = 'peak_power_timestamp';
-    case EnergyResetTimestamp = 'energy_reset_timestamp';
+    case PeakPowerStartTime = 'peak_power_start_time';
     case Energy = 'energy';
+    case EnergyStartTime = 'energy_start_time';
     case OutletType = 'outlet_type';
     case ExternalLink = 'external_link';
 
@@ -37,7 +38,8 @@ enum OutletMetric: string implements PduOutletMetric
             self::Index,
             self::State,
             self::PeakPowerTimestamp,
-            self::EnergyResetTimestamp,
+            self::PeakPowerStartTime,
+            self::EnergyStartTime,
             self::OutletType,
             self::ExternalLink => '',
             self::Current => 'A',
@@ -52,7 +54,8 @@ enum OutletMetric: string implements PduOutletMetric
         return match ($this) {
             self::Name,
             self::PeakPowerTimestamp,
-            self::EnergyResetTimestamp,
+            self::PeakPowerStartTime,
+            self::EnergyStartTime,
             self::OutletType,
             self::ExternalLink => true,
             default => false,

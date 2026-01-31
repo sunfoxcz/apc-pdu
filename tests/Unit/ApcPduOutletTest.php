@@ -180,8 +180,9 @@ class ApcPduOutletTest extends TestCase
                 'power' => 150.0,
                 'peak_power' => 200.0,
                 'peak_power_timestamp' => '2024-01-15 10:30:00',
-                'energy_reset_timestamp' => '2024-01-01 00:00:00',
+                'peak_power_start_time' => '2024-01-01 00:00:00',
                 'energy' => 50.5,
+                'energy_start_time' => '2024-01-01 00:00:00',
                 'outlet_type' => 'IEC C13',
                 'external_link' => 'https://example.com',
             ]);
@@ -199,8 +200,9 @@ class ApcPduOutletTest extends TestCase
         $this->assertSame(150.0, $status->powerW);
         $this->assertSame(200.0, $status->peakPowerW);
         $this->assertSame('2024-01-15 10:30:00', $status->peakPowerTimestamp);
-        $this->assertSame('2024-01-01 00:00:00', $status->energyResetTimestamp);
+        $this->assertSame('2024-01-01 00:00:00', $status->peakPowerStartTime);
         $this->assertSame(50.5, $status->energyKwh);
+        $this->assertSame('2024-01-01 00:00:00', $status->energyStartTime);
         $this->assertSame('IEC C13', $status->outletType);
         $this->assertSame('https://example.com', $status->externalLink);
     }

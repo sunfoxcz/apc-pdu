@@ -18,8 +18,9 @@ final readonly class OutletStatus
         public float $powerW,
         public float $peakPowerW,
         public string $peakPowerTimestamp,
-        public string $energyResetTimestamp,
+        public string $peakPowerStartTime,
         public float $energyKwh,
+        public string $energyStartTime,
         public string $outletType,
         public string $externalLink,
     ) {

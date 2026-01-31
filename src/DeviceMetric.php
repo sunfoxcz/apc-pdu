@@ -16,14 +16,13 @@ enum DeviceMetric: string
     case Power = 'power';
     case PeakPower = 'peak_power';
     case PeakPowerTimestamp = 'peak_power_timestamp';
-    case EnergyResetTimestamp = 'energy_reset_timestamp';
+    case PeakPowerStartTime = 'peak_power_start_time';
     case Energy = 'energy';
-    case EnergyStartTimestamp = 'energy_start_timestamp';
+    case EnergyStartTime = 'energy_start_time';
     case ApparentPower = 'apparent_power';
     case PowerFactor = 'power_factor';
     case OutletCount = 'outlet_count';
     case PhaseCount = 'phase_count';
-    case PeakPowerResetTimestamp = 'peak_power_reset_timestamp';
     case LowLoadThreshold = 'low_load_threshold';
     case NearOverloadThreshold = 'near_overload_threshold';
     case OverloadRestriction = 'overload_restriction';
@@ -36,11 +35,10 @@ enum DeviceMetric: string
             self::Name,
             self::LoadStatus,
             self::PeakPowerTimestamp,
-            self::EnergyResetTimestamp,
-            self::EnergyStartTimestamp,
+            self::PeakPowerStartTime,
+            self::EnergyStartTime,
             self::OutletCount,
             self::PhaseCount,
-            self::PeakPowerResetTimestamp,
             self::OverloadRestriction => '',
             self::Power,
             self::PeakPower => 'W',
@@ -57,9 +55,8 @@ enum DeviceMetric: string
         return match ($this) {
             self::Name,
             self::PeakPowerTimestamp,
-            self::EnergyResetTimestamp,
-            self::EnergyStartTimestamp,
-            self::PeakPowerResetTimestamp => true,
+            self::PeakPowerStartTime,
+            self::EnergyStartTime => true,
             default => false,
         };
     }

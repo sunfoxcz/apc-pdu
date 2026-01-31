@@ -33,14 +33,14 @@ final class ApcAp8xxxOidMap
         'power' => 5,
         'peak_power' => 6,
         'peak_power_timestamp' => 7,
-        'energy_reset_timestamp' => 8,
+        'peak_power_start_time' => 8,
         'energy' => 9,
-        'energy_start_timestamp' => 10,
+        'energy_start_time' => 10,
         'apparent_power' => 11,
         'power_factor' => 12,
         'outlet_count' => 13,
         'phase_count' => 14,
-        'peak_power_reset_timestamp' => 15,
+        'outlets_energy_start_time' => 15,
         'low_load_threshold' => 16,
         'near_overload_threshold' => 17,
         'overload_restriction' => 18,
@@ -54,14 +54,14 @@ final class ApcAp8xxxOidMap
         'power' => 0.1,           // hundredths kW -> W (x10)
         'peak_power' => 0.1,
         'peak_power_timestamp' => 1.0,
-        'energy_reset_timestamp' => 1.0,
+        'peak_power_start_time' => 1.0,
         'energy' => 10.0,         // tenths kWh -> kWh
-        'energy_start_timestamp' => 1.0,
+        'energy_start_time' => 1.0,
         'apparent_power' => 0.1,  // hundredths kVA -> VA (x10)
         'power_factor' => 100.0,  // hundredths -> ratio
         'outlet_count' => 1.0,
         'phase_count' => 1.0,
-        'peak_power_reset_timestamp' => 1.0,
+        'outlets_energy_start_time' => 1.0,
         'low_load_threshold' => 1.0,
         'near_overload_threshold' => 1.0,
         'overload_restriction' => 1.0,
@@ -77,7 +77,7 @@ final class ApcAp8xxxOidMap
         'power' => 7,
         'peak_power' => 8,
         'peak_power_timestamp' => 9,
-        'energy_reset_timestamp' => 10,
+        'peak_power_start_time' => 10,
         'energy' => 11,
         'outlet_type' => 12,
         'external_link' => 13,
@@ -93,8 +93,9 @@ final class ApcAp8xxxOidMap
         'power' => 1.0,
         'peak_power' => 1.0,
         'peak_power_timestamp' => 1.0,
-        'energy_reset_timestamp' => 1.0,
+        'peak_power_start_time' => 1.0,
         'energy' => 10.0,         // tenths kWh -> kWh
+        'energy_start_time' => 1.0,
         'outlet_type' => 1.0,
         'external_link' => 1.0,
     ];
@@ -131,8 +132,14 @@ final class ApcAp8xxxOidMap
         return self::OID_OUTLET_CONTROL . '.' . self::OUTLET_CONTROL_COMMAND . ".{$snmpIndex}";
     }
 
-    public function outletOid(PduOutletMetric $metric, int $snmpIndex): string
+    public function outletOid(PduOutletMetric $metric, int $snmpIndex, int $pduIndex = 1): string
     {
+        // EnergyStartTime for outlets comes from device status table
+        if ($metric->value() === 'energy_start_time') {
+            $suffix = self::DEVICE_OID_SUFFIX['outlets_energy_start_time'];
+            return self::OID_DEVICE_STATUS . ".{$suffix}.{$pduIndex}";
+        }
+
         $suffix = self::OUTLET_OID_SUFFIX[$metric->value()];
 
         // State is in switched outlet status table, not metered
