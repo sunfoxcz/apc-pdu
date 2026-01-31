@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Sunfox\ApcPdu\Protocol;
 
+use Sunfox\ApcPdu\OutletCommand;
 use Sunfox\ApcPdu\PduException;
-use Sunfox\ApcPdu\PowerState;
 
 interface WritableProtocolProviderInterface extends ProtocolProviderInterface
 {
@@ -20,14 +20,14 @@ interface WritableProtocolProviderInterface extends ProtocolProviderInterface
     public function setOutletName(int $pduIndex, int $outletNumber, string $name): void;
 
     /**
-     * Set the power state of an outlet.
+     * Control the power state of an outlet.
      *
      * @param int $pduIndex PDU index (1-4)
      * @param int $outletNumber Outlet number on the given PDU (1-N)
-     * @param PowerState $state New power state
+     * @param OutletCommand $command Command to execute (On, Off, Reboot)
      * @throws PduException
      */
-    public function setOutletState(int $pduIndex, int $outletNumber, PowerState $state): void;
+    public function setOutletState(int $pduIndex, int $outletNumber, OutletCommand $command): void;
 
     /**
      * Set the external link URL for an outlet.
@@ -38,6 +38,36 @@ interface WritableProtocolProviderInterface extends ProtocolProviderInterface
      * @throws PduException
      */
     public function setOutletExternalLink(int $pduIndex, int $outletNumber, string $url): void;
+
+    /**
+     * Set the low load power threshold for an outlet (in Watts).
+     *
+     * @param int $pduIndex PDU index (1-4)
+     * @param int $outletNumber Outlet number on the given PDU (1-N)
+     * @param int $watts Threshold in Watts
+     * @throws PduException
+     */
+    public function setOutletLowLoadThreshold(int $pduIndex, int $outletNumber, int $watts): void;
+
+    /**
+     * Set the near overload power threshold for an outlet (in Watts).
+     *
+     * @param int $pduIndex PDU index (1-4)
+     * @param int $outletNumber Outlet number on the given PDU (1-N)
+     * @param int $watts Threshold in Watts
+     * @throws PduException
+     */
+    public function setOutletNearOverloadThreshold(int $pduIndex, int $outletNumber, int $watts): void;
+
+    /**
+     * Set the overload power threshold for an outlet (in Watts).
+     *
+     * @param int $pduIndex PDU index (1-4)
+     * @param int $outletNumber Outlet number on the given PDU (1-N)
+     * @param int $watts Threshold in Watts
+     * @throws PduException
+     */
+    public function setOutletOverloadThreshold(int $pduIndex, int $outletNumber, int $watts): void;
 
     /**
      * Reset the device peak power value to current load.

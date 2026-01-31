@@ -157,7 +157,7 @@ final class SnmpV1Provider implements WritableProtocolProviderInterface
         }
 
         $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
-        $oid = $this->oidMap->outletOid(OutletMetric::Name, $snmpIndex);
+        $oid = $this->oidMap->outletNameConfigOid($snmpIndex);
 
         /** @var SnmpWritableClientInterface $client */
         $client = $this->client;
@@ -167,7 +167,7 @@ final class SnmpV1Provider implements WritableProtocolProviderInterface
     public function setOutletState(
         int $pduIndex,
         int $outletNumber,
-        \Sunfox\ApcPdu\PowerState $state,
+        \Sunfox\ApcPdu\OutletCommand $command,
     ): void {
         if (!$this->isWritable()) {
             throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
@@ -178,7 +178,7 @@ final class SnmpV1Provider implements WritableProtocolProviderInterface
 
         /** @var SnmpWritableClientInterface $client */
         $client = $this->client;
-        $client->setV1($oid, 'i', (string) $state->value, $this->community);
+        $client->setV1($oid, 'i', (string) $command->value, $this->community);
     }
 
     public function setOutletExternalLink(int $pduIndex, int $outletNumber, string $url): void
@@ -188,11 +188,53 @@ final class SnmpV1Provider implements WritableProtocolProviderInterface
         }
 
         $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
-        $oid = $this->oidMap->outletOid(OutletMetric::ExternalLink, $snmpIndex);
+        $oid = $this->oidMap->outletExternalLinkConfigOid($snmpIndex);
 
         /** @var SnmpWritableClientInterface $client */
         $client = $this->client;
         $client->setV1($oid, 's', $url, $this->community);
+    }
+
+    public function setOutletLowLoadThreshold(int $pduIndex, int $outletNumber, int $threshold): void
+    {
+        if (!$this->isWritable()) {
+            throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
+        }
+
+        $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
+        $oid = $this->oidMap->outletLowLoadThresholdConfigOid($snmpIndex);
+
+        /** @var SnmpWritableClientInterface $client */
+        $client = $this->client;
+        $client->setV1($oid, 'i', (string) $threshold, $this->community);
+    }
+
+    public function setOutletNearOverloadThreshold(int $pduIndex, int $outletNumber, int $threshold): void
+    {
+        if (!$this->isWritable()) {
+            throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
+        }
+
+        $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
+        $oid = $this->oidMap->outletNearOverloadThresholdConfigOid($snmpIndex);
+
+        /** @var SnmpWritableClientInterface $client */
+        $client = $this->client;
+        $client->setV1($oid, 'i', (string) $threshold, $this->community);
+    }
+
+    public function setOutletOverloadThreshold(int $pduIndex, int $outletNumber, int $threshold): void
+    {
+        if (!$this->isWritable()) {
+            throw new \Sunfox\ApcPdu\PduException('SNMP client does not support write operations');
+        }
+
+        $snmpIndex = $this->oidMap->outletToSnmpIndex($pduIndex, $outletNumber, $this->outletsPerPdu);
+        $oid = $this->oidMap->outletOverloadThresholdConfigOid($snmpIndex);
+
+        /** @var SnmpWritableClientInterface $client */
+        $client = $this->client;
+        $client->setV1($oid, 'i', (string) $threshold, $this->community);
     }
 
     public function resetDevicePeakPower(int $pduIndex): void

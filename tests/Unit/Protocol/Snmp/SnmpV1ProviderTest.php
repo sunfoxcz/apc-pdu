@@ -7,6 +7,7 @@ namespace Sunfox\ApcPdu\Tests\Unit\Protocol\Snmp;
 use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\OutletMetric;
 use Sunfox\ApcPdu\PduException;
+use Sunfox\ApcPdu\OutletCommand;
 use Sunfox\ApcPdu\PowerState;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpClientInterface;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpV1Provider;
@@ -56,7 +57,7 @@ class SnmpV1ProviderTest extends TestCase
         $client->expects($this->once())
             ->method('setV1')
             ->with(
-                '.1.3.6.1.4.1.318.1.1.26.9.4.3.1.3.5',
+                '.1.3.6.1.4.1.318.1.1.26.9.4.1.1.3.5',
                 's',
                 'New Name',
                 'private',
@@ -74,7 +75,7 @@ class SnmpV1ProviderTest extends TestCase
         $this->expectException(PduException::class);
         $this->expectExceptionMessage('SNMP client does not support write operations');
 
-        $provider->setOutletState(1, 5, PowerState::On);
+        $provider->setOutletState(1, 5, OutletCommand::On);
     }
 
     public function testSetOutletStateOnCallsClient(): void
@@ -85,12 +86,12 @@ class SnmpV1ProviderTest extends TestCase
             ->with(
                 '.1.3.6.1.4.1.318.1.1.26.9.2.4.1.5.5',
                 'i',
-                '2',
+                '1', // Command: 1=immediateOn
                 'private',
             );
 
         $provider = new SnmpV1Provider($client, 'private');
-        $provider->setOutletState(1, 5, PowerState::On);
+        $provider->setOutletState(1, 5, OutletCommand::On);
     }
 
     public function testSetOutletStateOffCallsClient(): void
@@ -101,12 +102,12 @@ class SnmpV1ProviderTest extends TestCase
             ->with(
                 '.1.3.6.1.4.1.318.1.1.26.9.2.4.1.5.5',
                 'i',
-                '1',
+                '2', // Command: 2=immediateOff
                 'private',
             );
 
         $provider = new SnmpV1Provider($client, 'private');
-        $provider->setOutletState(1, 5, PowerState::Off);
+        $provider->setOutletState(1, 5, OutletCommand::Off);
     }
 
     public function testSetOutletExternalLinkThrowsForNonWritableClient(): void
@@ -126,7 +127,7 @@ class SnmpV1ProviderTest extends TestCase
         $client->expects($this->once())
             ->method('setV1')
             ->with(
-                '.1.3.6.1.4.1.318.1.1.26.9.4.3.1.13.5',
+                '.1.3.6.1.4.1.318.1.1.26.9.4.1.1.8.5',
                 's',
                 'https://example.com',
                 'private',
@@ -217,7 +218,7 @@ class SnmpV1ProviderTest extends TestCase
         $client->expects($this->once())
             ->method('setV1')
             ->with(
-                '.1.3.6.1.4.1.318.1.1.26.9.4.3.1.3.29',
+                '.1.3.6.1.4.1.318.1.1.26.9.4.1.1.3.29',
                 's',
                 'Test',
                 'private',

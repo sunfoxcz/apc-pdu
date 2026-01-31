@@ -249,7 +249,7 @@ final class SnmpFreeDsxClient implements SnmpWritableClientInterface
         ]);
 
         try {
-            $client->set(Oid::fromString($oid, $this->convertTypeValue($type, $value)));
+            $client->set($this->createOidWithValue($oid, $type, $value));
         } catch (PduException $e) {
             throw $e;
         } catch (Throwable $e) {
@@ -278,7 +278,7 @@ final class SnmpFreeDsxClient implements SnmpWritableClientInterface
         );
 
         try {
-            $client->set(Oid::fromString($oid, $this->convertTypeValue($type, $value)));
+            $client->set($this->createOidWithValue($oid, $type, $value));
         } catch (PduException $e) {
             throw $e;
         } catch (Throwable $e) {
@@ -287,13 +287,13 @@ final class SnmpFreeDsxClient implements SnmpWritableClientInterface
     }
 
     /**
-     * Convert SNMP type and value to appropriate PHP type for FreeDSx.
+     * Create an Oid object with the appropriate value type for FreeDSx.
      */
-    private function convertTypeValue(string $type, string $value): string|int
+    private function createOidWithValue(string $oid, string $type, string $value): Oid
     {
         return match ($type) {
-            'i' => (int) $value,
-            default => $value,
+            'i' => Oid::fromInteger($oid, (int) $value),
+            default => Oid::fromString($oid, $value),
         };
     }
 }

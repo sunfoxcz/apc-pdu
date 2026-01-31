@@ -164,11 +164,11 @@ final class ApcPduOutlet
     }
 
     /**
-     * Set the outlet power state.
+     * Control the outlet power state.
      *
      * @throws PduException If the protocol does not support write operations
      */
-    public function setState(PowerState $state): void
+    public function setState(OutletCommand $command): void
     {
         if (!$this->isWritable()) {
             throw new PduException('Protocol does not support write operations');
@@ -176,7 +176,7 @@ final class ApcPduOutlet
 
         /** @var WritableProtocolProviderInterface $protocol */
         $protocol = $this->protocol;
-        $protocol->setOutletState($this->pduIndex, $this->outletNumber, $state);
+        $protocol->setOutletState($this->pduIndex, $this->outletNumber, $command);
     }
 
     /**
@@ -193,6 +193,57 @@ final class ApcPduOutlet
         /** @var WritableProtocolProviderInterface $protocol */
         $protocol = $this->protocol;
         $protocol->setOutletExternalLink($this->pduIndex, $this->outletNumber, $url);
+    }
+
+    /**
+     * Set the low load power threshold for the outlet.
+     *
+     * @param int $watts Threshold in Watts
+     * @throws PduException If the protocol does not support write operations
+     */
+    public function setLowLoadThreshold(int $watts): void
+    {
+        if (!$this->isWritable()) {
+            throw new PduException('Protocol does not support write operations');
+        }
+
+        /** @var WritableProtocolProviderInterface $protocol */
+        $protocol = $this->protocol;
+        $protocol->setOutletLowLoadThreshold($this->pduIndex, $this->outletNumber, $watts);
+    }
+
+    /**
+     * Set the near overload power threshold for the outlet.
+     *
+     * @param int $watts Threshold in Watts
+     * @throws PduException If the protocol does not support write operations
+     */
+    public function setNearOverloadThreshold(int $watts): void
+    {
+        if (!$this->isWritable()) {
+            throw new PduException('Protocol does not support write operations');
+        }
+
+        /** @var WritableProtocolProviderInterface $protocol */
+        $protocol = $this->protocol;
+        $protocol->setOutletNearOverloadThreshold($this->pduIndex, $this->outletNumber, $watts);
+    }
+
+    /**
+     * Set the overload power threshold for the outlet.
+     *
+     * @param int $watts Threshold in Watts
+     * @throws PduException If the protocol does not support write operations
+     */
+    public function setOverloadThreshold(int $watts): void
+    {
+        if (!$this->isWritable()) {
+            throw new PduException('Protocol does not support write operations');
+        }
+
+        /** @var WritableProtocolProviderInterface $protocol */
+        $protocol = $this->protocol;
+        $protocol->setOutletOverloadThreshold($this->pduIndex, $this->outletNumber, $watts);
     }
 
     /**

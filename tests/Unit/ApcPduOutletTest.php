@@ -7,6 +7,7 @@ namespace Sunfox\ApcPdu\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use Sunfox\ApcPdu\ApcPduOutlet;
 use Sunfox\ApcPdu\Dto\OutletStatus;
+use Sunfox\ApcPdu\OutletCommand;
 use Sunfox\ApcPdu\OutletMetric;
 use Sunfox\ApcPdu\PduException;
 use Sunfox\ApcPdu\PowerState;
@@ -267,7 +268,7 @@ class ApcPduOutletTest extends TestCase
         $this->expectException(PduException::class);
         $this->expectExceptionMessage('Protocol does not support write operations');
 
-        $outlet->setState(PowerState::On);
+        $outlet->setState(OutletCommand::On);
     }
 
     public function testSetStateCallsProviderSetOutletState(): void
@@ -276,11 +277,11 @@ class ApcPduOutletTest extends TestCase
         $provider->method('isWritable')->willReturn(true);
         $provider->expects($this->once())
             ->method('setOutletState')
-            ->with(1, 5, PowerState::On);
+            ->with(1, 5, OutletCommand::On);
 
         $outlet = new ApcPduOutlet($provider, 1, 5);
 
-        $outlet->setState(PowerState::On);
+        $outlet->setState(OutletCommand::On);
     }
 
     public function testSetStateOffCallsProviderSetOutletState(): void
@@ -289,11 +290,11 @@ class ApcPduOutletTest extends TestCase
         $provider->method('isWritable')->willReturn(true);
         $provider->expects($this->once())
             ->method('setOutletState')
-            ->with(1, 5, PowerState::Off);
+            ->with(1, 5, OutletCommand::Off);
 
         $outlet = new ApcPduOutlet($provider, 1, 5);
 
-        $outlet->setState(PowerState::Off);
+        $outlet->setState(OutletCommand::Off);
     }
 
     public function testSetExternalLinkThrowsExceptionForNonWritableProvider(): void

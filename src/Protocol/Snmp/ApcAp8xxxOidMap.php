@@ -11,7 +11,8 @@ final class ApcAp8xxxOidMap
 {
     private const OID_DEVICE_STATUS = '.1.3.6.1.4.1.318.1.1.26.4.3.1';
     private const OID_DEVICE_CONFIG = '.1.3.6.1.4.1.318.1.1.26.4.1.1';
-    private const OID_OUTLET_METERED = '.1.3.6.1.4.1.318.1.1.26.9.4.3.1';
+    private const OID_OUTLET_METERED_STATUS = '.1.3.6.1.4.1.318.1.1.26.9.4.3.1';
+    private const OID_OUTLET_METERED_CONFIG = '.1.3.6.1.4.1.318.1.1.26.9.4.1.1';
     private const OID_OUTLET_SWITCHED = '.1.3.6.1.4.1.318.1.1.26.9.2.3.1';
     private const OID_OUTLET_CONTROL = '.1.3.6.1.4.1.318.1.1.26.9.2.4.1';
 
@@ -137,9 +138,34 @@ final class ApcAp8xxxOidMap
         // State is in switched outlet status table, not metered
         $base = $metric->value() === 'state'
             ? self::OID_OUTLET_SWITCHED
-            : self::OID_OUTLET_METERED;
+            : self::OID_OUTLET_METERED_STATUS;
 
         return $base . ".{$suffix}.{$snmpIndex}";
+    }
+
+    public function outletNameConfigOid(int $snmpIndex): string
+    {
+        return self::OID_OUTLET_METERED_CONFIG . '.' . self::OUTLET_OID_SUFFIX['name'] . ".{$snmpIndex}";
+    }
+
+    public function outletLowLoadThresholdConfigOid(int $snmpIndex): string
+    {
+        return self::OID_OUTLET_METERED_CONFIG . '.5.' . $snmpIndex;
+    }
+
+    public function outletNearOverloadThresholdConfigOid(int $snmpIndex): string
+    {
+        return self::OID_OUTLET_METERED_CONFIG . '.6.' . $snmpIndex;
+    }
+
+    public function outletOverloadThresholdConfigOid(int $snmpIndex): string
+    {
+        return self::OID_OUTLET_METERED_CONFIG . '.7.' . $snmpIndex;
+    }
+
+    public function outletExternalLinkConfigOid(int $snmpIndex): string
+    {
+        return self::OID_OUTLET_METERED_CONFIG . '.8.' . $snmpIndex;
     }
 
     public function outletToSnmpIndex(int $pduIndex, int $outletNumber, int $outletsPerPdu): int

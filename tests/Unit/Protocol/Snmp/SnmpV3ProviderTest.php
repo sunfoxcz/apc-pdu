@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunfox\ApcPdu\Tests\Unit\Protocol\Snmp;
 
 use PHPUnit\Framework\TestCase;
+use Sunfox\ApcPdu\OutletCommand;
 use Sunfox\ApcPdu\PduException;
 use Sunfox\ApcPdu\PowerState;
 use Sunfox\ApcPdu\Protocol\Snmp\SnmpClientInterface;
@@ -55,7 +56,7 @@ class SnmpV3ProviderTest extends TestCase
         $client->expects($this->once())
             ->method('setV3')
             ->with(
-                '.1.3.6.1.4.1.318.1.1.26.9.4.3.1.3.5',
+                '.1.3.6.1.4.1.318.1.1.26.9.4.1.1.3.5',
                 's',
                 'New Name',
                 'monitor',
@@ -78,7 +79,7 @@ class SnmpV3ProviderTest extends TestCase
             ->with(
                 '.1.3.6.1.4.1.318.1.1.26.9.2.4.1.5.5',
                 'i',
-                '2',
+                '1', // Command: 1=immediateOn
                 'monitor',
                 'authPriv',
                 'SHA',
@@ -88,7 +89,7 @@ class SnmpV3ProviderTest extends TestCase
             );
 
         $provider = new SnmpV3Provider($client, 'monitor', 'authpass', 'privpass');
-        $provider->setOutletState(1, 5, PowerState::On);
+        $provider->setOutletState(1, 5, OutletCommand::On);
     }
 
     public function testSetOutletStateOffCallsClient(): void
@@ -99,7 +100,7 @@ class SnmpV3ProviderTest extends TestCase
             ->with(
                 '.1.3.6.1.4.1.318.1.1.26.9.2.4.1.5.5',
                 'i',
-                '1',
+                '2', // Command: 2=immediateOff
                 'monitor',
                 'authPriv',
                 'SHA',
@@ -109,7 +110,7 @@ class SnmpV3ProviderTest extends TestCase
             );
 
         $provider = new SnmpV3Provider($client, 'monitor', 'authpass', 'privpass');
-        $provider->setOutletState(1, 5, PowerState::Off);
+        $provider->setOutletState(1, 5, OutletCommand::Off);
     }
 
     public function testSetOutletExternalLinkCallsClient(): void
@@ -118,7 +119,7 @@ class SnmpV3ProviderTest extends TestCase
         $client->expects($this->once())
             ->method('setV3')
             ->with(
-                '.1.3.6.1.4.1.318.1.1.26.9.4.3.1.13.5',
+                '.1.3.6.1.4.1.318.1.1.26.9.4.1.1.8.5',
                 's',
                 'https://example.com',
                 'monitor',
@@ -276,7 +277,7 @@ class SnmpV3ProviderTest extends TestCase
         $client->expects($this->once())
             ->method('setV3')
             ->with(
-                '.1.3.6.1.4.1.318.1.1.26.9.4.3.1.3.29',
+                '.1.3.6.1.4.1.318.1.1.26.9.4.1.1.3.29',
                 's',
                 'Test',
                 $this->anything(),
