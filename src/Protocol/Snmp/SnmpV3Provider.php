@@ -368,17 +368,26 @@ final class SnmpV3Provider implements WritableProtocolProviderInterface
 
         /** @var SnmpWritableClientInterface $client */
         $client = $this->client;
-        $client->setV3(
-            $oid,
-            'i',
-            '2',
-            $this->username,
-            $this->securityLevel,
-            $this->authProtocol,
-            $this->authPassphrase,
-            $this->privProtocol,
-            $this->privPassphrase,
-        );
+
+        try {
+            $client->setV3(
+                $oid,
+                'i',
+                '2',
+                $this->username,
+                $this->securityLevel,
+                $this->authProtocol,
+                $this->authPassphrase,
+                $this->privProtocol,
+                $this->privPassphrase,
+            );
+        } catch (\Sunfox\ApcPdu\PduException $e) {
+            // APC PDUs often drop the connection after processing reset commands
+            // but the operation succeeds. Ignore connection-related errors.
+            if (!str_contains($e->getMessage(), 'No message received from host')) {
+                throw $e;
+            }
+        }
     }
 
     private function determineSecurityLevel(): string

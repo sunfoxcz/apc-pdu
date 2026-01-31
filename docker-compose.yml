@@ -51,7 +51,7 @@ services:
     volumes:
       - .:/app
     entrypoint: ["/bin/sh", "-c", "composer install --quiet && exec \"$$@\"", "--"]
-    command: vendor/bin/phpstan analyse src tests --level=5
+    command: vendor/bin/phpstan analyse src tests --level=5 --memory-limit=512M
 
   # Run PHP_CodeSniffer (PSR-12 check)
   phpcs:

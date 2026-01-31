@@ -270,6 +270,15 @@ final class SnmpV1Provider implements WritableProtocolProviderInterface
 
         /** @var SnmpWritableClientInterface $client */
         $client = $this->client;
-        $client->setV1($oid, 'i', '2', $this->community);
+
+        try {
+            $client->setV1($oid, 'i', '2', $this->community);
+        } catch (\Sunfox\ApcPdu\PduException $e) {
+            // APC PDUs often drop the connection after processing reset commands
+            // but the operation succeeds. Ignore connection-related errors.
+            if (!str_contains($e->getMessage(), 'No message received from host')) {
+                throw $e;
+            }
+        }
     }
 }
